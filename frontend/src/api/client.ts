@@ -1,0 +1,96 @@
+import type {
+  ActionResponse,
+  CheckResponse,
+  HistoryResponse,
+  LogsResponse,
+  RotateResponse,
+  Settings,
+  SettingsResponse,
+  StatusResponse,
+} from './types';
+
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code: string;
+
+  constructor(message: string, status = 0, code = 'network_error') {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.code = code;
+  }
+}
+
+interface RequestOptions {
+  method?: 'GET' | 'POST';
+  body?: unknown;
+  timeout?: number;
+}
+
+async function api<T>(path: string, options: RequestOptions = {}): Promise<T> {
+  const { method = 'GET', body, timeout = 12_000 } = options;
+  const controller = new AbortController();
+  const timer = window.setTimeout(() => controller.abort(), timeout);
+
+  try {
+    const response = await fetch(path, {
+      method,
+      cache: 'no-store',
+      credentials: 'same-origin',
+      headers: body === undefined ? undefined : { 'Content-Type': 'application/json' },
+      body: body === undefined ? undefined : JSON.stringify(body),
+      signal: controller.signal,
+    });
+
+    const raw = await response.text();
+    let payload: unknown = null;
+    if (raw) {
+      try {
+        payload = JSON.parse(raw);
+      } catch {
+        payload = null;
+      }
+    }
+
+    if (!response.ok) {
+      const errorPayload = payload as { error?: { message?: string; code?: string } } | null;
+      const message =
+        errorPayload?.error?.message ?? `Yêu cầu thất bại (HTTP ${response.status}).`;
+      throw new ApiError(message, response.status, errorPayload?.error?.code ?? 'http_error');
+    }
+    if (payload === null) {
+      throw new ApiError('Máy chủ trả về dữ liệu không hợp lệ.', response.status, 'invalid_json');
+    }
+    return payload as T;
+  } catch (error) {
+    if (error instanceof ApiError) throw error;
+    if (error instanceof DOMException && error.name === 'AbortError') {
+      throw new ApiError('Máy chủ phản hồi quá lâu. Vui lòng thử lại.', 0, 'timeout');
+    }
+    throw new ApiError(
+      'Không kết nối được dịch vụ điều khiển. Kiểm tra cửa sổ terminal.',
+      0,
+      'network_error',
+    );
+  } finally {
+    window.clearTimeout(timer);
+  }
+}
+
+export const dashboardApi = {
+  status: () => api<StatusResponse>('/api/status'),
+  logs: (after = 0, limit = 500) =>
+    api<LogsResponse>(`/api/logs?after=${encodeURIComponent(after)}&limit=${limit}`),
+  history: () => api<HistoryResponse>('/api/history'),
+  settings: () => api<SettingsResponse>('/api/settings'),
+  rotate: () =>
+    api<RotateResponse>('/api/rotate', { method: 'POST', body: {}, timeout: 15_000 }),
+  check: () =>
+    api<CheckResponse>('/api/check', { method: 'POST', body: {}, timeout: 25_000 }),
+  saveSettings: (patch: Partial<Settings>) =>
+    api<ActionResponse>('/api/settings', { method: 'POST', body: patch, timeout: 15_000 }),
+  clearHistory: () => api<ActionResponse>('/api/history/clear', { method: 'POST', body: {} }),
+  clearLogs: () => api<ActionResponse>('/api/logs/clear', { method: 'POST', body: {} }),
+  reconnect: () => api<ActionResponse>('/api/device/reconnect', { method: 'POST', body: {} }),
+  restartProxy: () => api<ActionResponse>('/api/proxy/restart', { method: 'POST', body: {} }),
+};

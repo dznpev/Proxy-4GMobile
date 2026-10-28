@@ -10,9 +10,9 @@
   - Trạng thái thiết bị, proxy và IP phải rõ ràng ở cấp độ đầu tiên.
   - Mọi thao tác nguy hiểm (xóa dữ liệu, khởi động lại daemon) phải có xác nhận.
   - Đạt WCAG 2.2 AA, ưu tiên bàn phím, không phụ thuộc màu sắc đơn thuần.
-  - Không cần build; font và asset tự lưu, CSP không cho inline script/style.
+  - Frontend React 19 + TypeScript, build bằng Vite; font và asset tự lưu, CSP không cho inline script/style.
 - Nguồn yêu cầu: `DESIGN.md` tại thư mục gốc.
-- Triển khai: `web/index.html`, `web/assets/styles.css`, `web/assets/app.js`.
+- Triển khai: `frontend/src/` (React), CSS trong `frontend/src/styles/`, backend phục vụ `frontend/dist`.
 
 ## 2. Token và nền tảng thiết kế
 
@@ -222,7 +222,7 @@ Các tiêu chí kiểm thử được:
 
 ## 6. Anti-pattern và điều cấm
 
-- **Cấm** dùng inline style hoặc inline script: CSP hiện tại chặn; mọi style phải nằm trong `styles.css`.
+- **Cấm** dùng inline style hoặc inline script: CSP hiện tại chặn; mọi style phải nằm trong các file CSS tại `frontend/src/styles/`.
 - **Cấm** thêm màu hex trực tiếp trong component; phải định nghĩa token semantic.
 - **Cấm** bỏ `:focus-visible` hoặc dùng `outline: none` mà không thay thế.
 - **Cấm** dùng `div` giả button/link; dùng đúng phần tử ngữ nghĩa.
@@ -265,17 +265,18 @@ Các tiêu chí kiểm thử được:
 
 ### Kỹ thuật
 
-- [ ] `python -m unittest discover -s tests -v` pass.
-- [ ] `node --check web/assets/app.js` pass.
-- [ ] `python -m compileall -q auto_mobile_proxy.py mobile_proxy` pass.
+- [ ] `python -m unittest discover -s backend/tests -v` pass.
+- [ ] `npm run typecheck` và `npm run build` trong `frontend/` pass.
+- [ ] `python -m compileall -q auto_mobile_proxy.py backend` pass.
 - [ ] Lighthouse Accessibility = 100; không có lỗi label/name mismatch.
 - [ ] CSP không có `unsafe-inline`; không tải asset ngoài `'self'`.
 - [ ] `prefers-reduced-motion` tắt animation; không có layout shift lớn khi polling.
 
 ## 8. Ghi chú triển khai
 
-- Component dùng token trong `web/assets/styles.css`; không thêm stylesheet thứ hai.
+- Component dùng token trong `frontend/src/styles/tokens.css`; CSS chia theo `base`, `layout`, `controls`, `cards`, `data`, `forms`, `overlays`, `responsive` và import từ `index.css`.
+- Kiến trúc React: `HashRouter` → `ToastProvider` → `ConfirmProvider` → `DashboardProvider` → `AppShell`; các trang đọc trạng thái chung qua `useDashboard`.
 - Logic polling 2,5 giây khi tab hiển thị, 10 giây khi ẩn; request status/logs được dedupe.
-- Dữ liệu từ API luôn render bằng `textContent`/DOM API, không dùng `innerHTML`.
+- Dữ liệu từ API render qua JSX (React tự escape), không dùng `innerHTML`.
 - Trạng thái server là nguồn sự thật; UI chỉ tối ưu hiển thị và rollback khi request thất bại.
 - Mật độ component tham chiếu từ `DESIGN.md`: 40 link, 11 button, 8 card, 3 navigation, 1 input, 1 table. Dashboard mở rộng có chủ đích (5 nav item, nhiều card/table hơn) nhưng vẫn giữ cùng token, spacing và quy tắc trạng thái.

@@ -9,9 +9,10 @@ from pathlib import Path
 APP_NAME = "4G Mobile Proxy"
 APP_VERSION = "2.0.0"
 
-ROOT_DIR = Path(__file__).resolve().parent.parent
-BIN_DIR = ROOT_DIR / "bin"
-WEB_DIR = ROOT_DIR / "web"
+BACKEND_DIR = Path(__file__).resolve().parent.parent
+ROOT_DIR = BACKEND_DIR.parent
+BIN_DIR = BACKEND_DIR / "bin"
+WEB_DIR = ROOT_DIR / "frontend" / "dist"
 DEFAULT_DATA_DIR = ROOT_DIR / "data"
 
 REMOTE_BIN = "/data/local/tmp/mini_proxy"

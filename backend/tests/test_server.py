@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 import tempfile
 import time
 import unittest
@@ -10,9 +11,9 @@ from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
 
-from mobile_proxy.config import AppConfig
-from mobile_proxy.server import DashboardServer
-from mobile_proxy.service import MobileProxyService
+from backend.mobile_proxy.config import WEB_DIR, AppConfig
+from backend.mobile_proxy.server import DashboardServer
+from backend.mobile_proxy.service import MobileProxyService
 
 
 class DashboardServerTests(unittest.TestCase):
@@ -77,17 +78,27 @@ class DashboardServerTests(unittest.TestCase):
         return status, json.loads(body)
 
     def test_dashboard_index_and_assets_are_served(self) -> None:
+        index_path = WEB_DIR / "index.html"
+        if not index_path.exists():
+            self.skipTest("frontend/dist chưa được build (chạy: cd frontend && npm run build)")
+
         status, headers, body = self.request("/")
         self.assertEqual(status, 200)
         self.assertIn("text/html", headers["Content-Type"])
         self.assertIn(b"4G Mobile Proxy", body)
 
-        status, headers, body = self.request("/assets/app.js")
+        html = body.decode("utf-8")
+        script = re.search(r'src="(/assets/[^"]+\.js)"', html)
+        stylesheet = re.search(r'href="(/assets/[^"]+\.css)"', html)
+        self.assertIsNotNone(script, "index.html thiếu script bundle")
+        self.assertIsNotNone(stylesheet, "index.html thiếu stylesheet bundle")
+
+        status, headers, asset = self.request(script.group(1))
         self.assertEqual(status, 200)
         self.assertIn("text/javascript", headers["Content-Type"])
-        self.assertIn(b"renderStatus", body)
+        self.assertGreater(len(asset), 1000)
 
-        for path in ("/assets/styles.css", "/favicon.svg", "/assets/fonts/OFL.txt"):
+        for path in (stylesheet.group(1), "/favicon.svg", "/assets/fonts/OFL.txt"):
             status, _, _ = self.request(path)
             self.assertEqual(status, 200, path)
 

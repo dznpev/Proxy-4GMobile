@@ -10,7 +10,7 @@ Máy tính ──► Dashboard + JSON API ────────────�
 
 ## Tính năng
 
-- **Zero-app**: đẩy daemon Go có sẵn trong `bin/` tới `/data/local/tmp/mini_proxy`, không cài ứng dụng lên điện thoại.
+- **Zero-app**: đẩy daemon Go có sẵn trong `backend/bin/` tới `/data/local/tmp/mini_proxy`, không cài ứng dụng lên điện thoại.
 - **Dashboard 5 trang**: Tổng quan, Thiết bị, Lịch sử IP, Nhật ký, Cài đặt.
 - **Xoay IP thủ công hoặc tự động** theo chu kỳ 5–1440 phút, hỗ trợ chế độ máy bay hoặc bật/tắt dữ liệu di động.
 - **Theo dõi trực tiếp** IP công khai, nhà mạng, vị trí, độ trễ và tiến trình xoay theo từng bước.
@@ -24,6 +24,7 @@ Máy tính ──► Dashboard + JSON API ────────────�
 - Android Platform Tools (`adb`) có trong `PATH`.
 - Điện thoại Android đã bật **Gỡ lỗi USB** và ủy quyền cho máy tính.
 - Gói Python trong `requirements.txt` (`requests`).
+- Node.js **20+** và npm khi cần phát triển hoặc build giao diện.
 
 Cài đặt:
 
@@ -45,6 +46,17 @@ python auto_mobile_proxy.py
 ```
 
 Mở dashboard tại **http://127.0.0.1:8081** (hoặc thêm `--open` để tự mở trình duyệt). Proxy HTTP nằm tại **http://127.0.0.1:8080**.
+
+Dashboard phục vụ bản build tĩnh trong `frontend/dist`. Sau khi clone repo, build giao diện một lần:
+
+```bash
+cd frontend
+npm install
+npm run build
+cd ..
+```
+
+Sau đó chạy backend như trên.
 
 ### Chế độ demo
 
@@ -88,7 +100,25 @@ Khi chạy tương tác, nhập:
 | **Nhật ký** | 500 dòng gần nhất, lọc theo mức độ, tìm kiếm, tự cuộn, xóa nhật ký. |
 | **Cài đặt** | Bật/tắt tự động, chu kỳ phút, phương thức xoay, thông tin API và thư mục dữ liệu. |
 
-Giao diện là HTML/CSS/JS thuần, không cần build. Font **Be Vietnam Pro** được tự lưu trong `web/assets/fonts/` (kèm `OFL.txt`).
+Giao diện dùng React 19 + TypeScript + Vite 7, giữ hash routing (`#/overview`, `#/device`, ...). Font **Be Vietnam Pro** được tự lưu trong `frontend/public/assets/fonts/` (kèm `OFL.txt`).
+
+### Phát triển giao diện
+
+Chạy backend ở một cửa sổ:
+
+```bash
+python auto_mobile_proxy.py --demo
+```
+
+Chạy Vite ở cửa sổ khác:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Mở **http://127.0.0.1:5173**; Vite proxy các request `/api`, `/status`, `/rotate` sang backend `127.0.0.1:8081`. Kiểm tra kiểu và build production bằng `npm run typecheck` / `npm run build`.
 
 ## API cục bộ
 
@@ -143,37 +173,47 @@ Có thể đổi thư mục dữ liệu bằng `--data-dir` hoặc `PROXY_DATA_D
 
 ```text
 auto_mobile_proxy.py       # CLI + vòng đời ứng dụng
-mobile_proxy/
-  config.py                # cấu hình, đường dẫn
-  events.py                # nhật ký có giới hạn
-  adb.py                   # wrapper ADB
-  network.py               # kiểm tra IP qua proxy
-  storage.py               # lưu cài đặt/lịch sử
-  demo.py                  # backend mô phỏng
-  service.py               # thiết bị, xoay IP, lịch tự động
-  server.py                # HTTP server, API, static, CSP
-web/
-  index.html               # dashboard
-  assets/styles.css        # token từ DESIGN.md
-  assets/app.js            # routing, polling, thao tác
-  assets/fonts/            # Be Vietnam Pro + OFL
-bin/                       # daemon proxy ARM32/ARM64
-proxy_daemon/main.go       # mã nguồn daemon Go
-tests/                     # unittest cho storage, service, HTTP API
+backend/
+  __init__.py
+  mobile_proxy/
+    config.py              # cấu hình, đường dẫn (frontend/dist)
+    events.py              # nhật ký có giới hạn
+    adb.py                 # wrapper ADB
+    network.py             # kiểm tra IP qua proxy
+    storage.py             # lưu cài đặt/lịch sử
+    demo.py                # backend mô phỏng
+    service.py             # thiết bị, xoay IP, lịch tự động
+    server.py              # HTTP server, API, static, CSP
+  bin/                     # daemon proxy ARM32/ARM64
+  proxy_daemon/main.go     # mã nguồn daemon Go
+  tests/                   # unittest cho storage, service, HTTP API
+frontend/
+  index.html               # entry của Vite
+  src/main.tsx             # bootstrap React
+  src/app/                 # router, shell, providers, hooks
+  src/components/          # layout và component dùng chung
+  src/pages/               # 5 trang dashboard
+  src/api/                 # client + kiểu dữ liệu API
+  src/lib/                 # hằng số, format, trạng thái
+  src/styles/              # token/base/layout/component/responsive
+  public/assets/fonts/     # Be Vietnam Pro + OFL
+  dist/                    # build output (đã gitignore)
 docs/DASHBOARD-DESIGN.md   # đặc tả thiết kế dashboard
 ```
 
 ## Kiểm thử
 
 ```bash
-python -m unittest discover -s tests -v
+python -m unittest discover -s backend/tests -v
 ```
 
-Bộ test dùng backend demo, không cần điện thoại hay mạng ngoài. Kiểm tra thêm cú pháp:
+Bộ test dùng backend demo, không cần điện thoại hay mạng ngoài. Kiểm tra thêm cú pháp và bản build giao diện:
 
 ```bash
-python -m compileall -q auto_mobile_proxy.py mobile_proxy
-node --check web/assets/app.js
+python -m compileall -q auto_mobile_proxy.py backend
+cd frontend
+npm run typecheck
+npm run build
 ```
 
 ## Xử lý sự cố

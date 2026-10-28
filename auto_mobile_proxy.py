@@ -20,9 +20,9 @@ import webbrowser
 from pathlib import Path
 
 try:
-    from mobile_proxy.config import APP_NAME, APP_VERSION, AppConfig
-    from mobile_proxy.server import DashboardServer
-    from mobile_proxy.service import MobileProxyService, ServiceError
+    from backend.mobile_proxy.config import APP_NAME, APP_VERSION, AppConfig
+    from backend.mobile_proxy.server import DashboardServer
+    from backend.mobile_proxy.service import MobileProxyService, ServiceError
 except ModuleNotFoundError as exc:  # pragma: no cover - user environment
     if exc.name == "requests":
         sys.stderr.write(
