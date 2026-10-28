@@ -1,0 +1,258 @@
+/* -- Buttons -------------------------------------------------------------- */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-3);
+  min-height: 36px;
+  padding: 0 var(--space-9);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  font-family: inherit;
+  font-size: var(--font-size-md);
+  font-weight: 600;
+  line-height: 1;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background var(--duration-instant) ease, border-color var(--duration-instant) ease, color var(--duration-instant) ease;
+}
+
+.btn .icon {
+  width: 16px;
+  height: 16px;
+}
+
+.btn-primary {
+  background: var(--accent);
+  color: var(--text-inverse);
+}
+
+.btn-primary:hover {
+  background: var(--accent-hover);
+}
+
+.btn-primary:active {
+  background: var(--accent-active);
+}
+
+.btn-secondary {
+  border-color: var(--border-strong);
+  background: var(--surface-card);
+  color: var(--text-primary);
+}
+
+.btn-secondary:hover {
+  border-color: var(--text-tertiary);
+  background: var(--surface-raised);
+}
+
+.btn-secondary:active {
+  background: var(--surface-sunken);
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+}
+
+.btn-ghost:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.btn-ghost:active {
+  background: var(--border-default);
+}
+
+.btn-danger {
+  background: var(--danger-solid);
+  color: var(--text-inverse);
+}
+
+.btn-danger:hover {
+  background: var(--danger-hover);
+}
+
+.btn:active {
+  transform: translateY(0.5px);
+}
+
+.btn:disabled,
+.btn[aria-disabled="true"] {
+  border-color: var(--border-default);
+  background: var(--surface-sunken);
+  color: var(--text-muted);
+  cursor: not-allowed;
+  transform: none;
+}
+
+.btn-sm {
+  min-height: 30px;
+  padding: 0 var(--space-8);
+  font-size: var(--font-size-sm);
+}
+
+.btn.is-loading {
+  cursor: progress;
+}
+
+.btn.is-loading > .icon {
+  animation: spin 0.9s linear infinite;
+}
+
+.btn.is-loading:not(:has(.icon))::before {
+  width: 13px;
+  height: 13px;
+  flex: none;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 50%;
+  content: "";
+  animation: spin 0.9s linear infinite;
+}
+
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  flex: none;
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  transition: background var(--duration-instant) ease, color var(--duration-instant) ease;
+}
+
+.icon-btn:hover {
+  background: var(--surface-sunken);
+  color: var(--text-primary);
+}
+
+.icon-btn:active {
+  background: var(--border-default);
+}
+
+.icon-btn .icon {
+  width: 17px;
+  height: 17px;
+}
+
+.topbar .menu-toggle,
+.sidebar .sidebar-close {
+  display: none;
+}
+
+.icon-btn-inverse {
+  color: var(--text-inverse-muted);
+}
+
+.icon-btn-inverse:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-inverse);
+}
+
+/* -- Badges / status ------------------------------------------------------ */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  min-height: 22px;
+  padding: 2px 8px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-2xl);
+  font-size: var(--font-size-xs);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.badge .icon {
+  width: 12px;
+  height: 12px;
+}
+
+.badge-neutral {
+  border-color: var(--border-default);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+}
+
+.badge-success {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.badge-warning {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.badge-danger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+
+.badge-info {
+  border-color: var(--info-border);
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 28px;
+  padding: 4px 10px;
+  border: 1px solid;
+  border-radius: var(--radius-2xl);
+  font-size: var(--font-size-sm);
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: nowrap;
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  flex: none;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+.status-neutral {
+  border-color: var(--border-default);
+  background: var(--surface-sunken);
+  color: var(--text-secondary);
+}
+
+.status-success {
+  border-color: var(--success-border);
+  background: var(--success-bg);
+  color: var(--success-fg);
+}
+
+.status-warning {
+  border-color: var(--warning-border);
+  background: var(--warning-bg);
+  color: var(--warning-fg);
+}
+
+.status-danger {
+  border-color: var(--danger-border);
+  background: var(--danger-bg);
+  color: var(--danger-fg);
+}
+
+.status-info {
+  border-color: var(--info-border);
+  background: var(--info-bg);
+  color: var(--info-fg);
+}
+
