@@ -6,8 +6,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mobile_proxy.config import AppConfig
-from mobile_proxy.service import MobileProxyService, NotConnectedError
+from backend.mobile_proxy.config import AppConfig
+from backend.mobile_proxy.service import MobileProxyService, NotConnectedError
 
 
 class DemoServiceTests(unittest.TestCase):

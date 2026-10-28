@@ -7,8 +7,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from mobile_proxy.events import EventLog
-from mobile_proxy.storage import (
+from backend.mobile_proxy.events import EventLog
+from backend.mobile_proxy.storage import (
     DEFAULT_SETTINGS,
     HistoryStore,
     SettingsStore,
