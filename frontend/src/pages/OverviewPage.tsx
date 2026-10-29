@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { RotationInfo, Tone } from '../api/types';
 import { Icon } from '../components/Icon';
 import { Badge } from '../components/ui/Badge';
+import { Progress } from '../components/ui/progress';
 import { HistoryRows } from '../components/data/HistoryRows';
 import { LogList } from '../components/data/LogList';
 import { useDashboard } from '../app/providers/DashboardProvider';
@@ -383,16 +384,15 @@ export function OverviewPage() {
             ))}
           </ol>
 
-          <progress
-            className={`progress${rotationSucceeded ? ' is-success' : ''}${
-              rotationFailed ? ' is-error' : ''
-            }`}
+          <Progress
+            className="mt-3"
             max={100}
             value={progress}
+            tone={rotationSucceeded ? 'success' : rotationFailed ? 'error' : 'default'}
             aria-label="Tiến độ xoay IP"
           >
             {Math.round(progress)}%
-          </progress>
+          </Progress>
 
           <footer className="card-foot">
             <span className="meta-text">{autoNextSummary}</span>

@@ -1,6 +1,13 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { LogList } from '../components/data/LogList';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '../components/ui/empty';
 import { useDashboard } from '../app/providers/DashboardProvider';
 
 const LEVELS = [
@@ -108,17 +115,26 @@ export function LogsPage() {
         </h2>
         <div className="log-console" ref={consoleRef}>
           <LogList items={items} ariaLabel="Nhật ký hoạt động chi tiết" />
-          <div className="empty-state empty-state-dark" hidden={!empty}>
-            <div className="empty-icon" aria-hidden="true">
-              <Icon name="terminal" />
-            </div>
-            <h3>{filtersActive ? 'Không có dòng phù hợp' : 'Chưa có nhật ký'}</h3>
-            <p>
-              {filtersActive
-                ? 'Thử đổi mức độ hoặc từ khóa tìm kiếm.'
-                : 'Hoạt động của proxy sẽ xuất hiện ở đây.'}
-            </p>
-          </div>
+          {empty ? (
+            <Empty className="gap-2 px-5 py-12 text-(--text-inverse)">
+              <EmptyMedia
+                className="mb-1 bg-white/8 text-(--text-inverse)"
+                variant="icon"
+              >
+                <Icon name="terminal" />
+              </EmptyMedia>
+              <EmptyHeader>
+                <EmptyTitle className="text-(--text-inverse)">
+                  {filtersActive ? 'Không có dòng phù hợp' : 'Chưa có nhật ký'}
+                </EmptyTitle>
+                <EmptyDescription className="text-(--log-time)">
+                  {filtersActive
+                    ? 'Thử đổi mức độ hoặc từ khóa tìm kiếm.'
+                    : 'Hoạt động của proxy sẽ xuất hiện ở đây.'}
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
+          ) : null}
         </div>
       </article>
     </section>
