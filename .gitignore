@@ -6,7 +6,7 @@ venv/
 .env
 
 # Local runtime data (dashboard settings, rotation history)
-data/
+/data/
 
 # Frontend dependencies and build output
 frontend/node_modules/
