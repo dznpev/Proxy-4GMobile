@@ -1,3 +1,4 @@
+@layer legacy {
 /* -- Buttons -------------------------------------------------------------- */
 .btn {
   display: inline-flex;
@@ -7,7 +8,7 @@
   min-height: 36px;
   padding: 0 var(--space-9);
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   font-family: inherit;
   font-size: var(--font-size-md);
   font-weight: 600;
@@ -120,7 +121,7 @@
   flex: none;
   padding: 0;
   border: 1px solid transparent;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background: transparent;
   color: var(--text-secondary);
   transition: background var(--duration-instant) ease, color var(--duration-instant) ease;
@@ -162,7 +163,7 @@
   min-height: 22px;
   padding: 2px 8px;
   border: 1px solid transparent;
-  border-radius: var(--radius-2xl);
+  border-radius: var(--app-radius-pill);
   font-size: var(--font-size-xs);
   font-weight: 600;
   line-height: 1.4;
@@ -211,7 +212,7 @@
   min-height: 28px;
   padding: 4px 10px;
   border: 1px solid;
-  border-radius: var(--radius-2xl);
+  border-radius: var(--app-radius-pill);
   font-size: var(--font-size-sm);
   font-weight: 600;
   line-height: 1.4;
@@ -255,4 +256,4 @@
   background: var(--info-bg);
   color: var(--info-fg);
 }
-
+}

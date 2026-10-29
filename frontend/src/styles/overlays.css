@@ -1,9 +1,10 @@
+@layer legacy {
 /* -- Dialog --------------------------------------------------------------- */
 .dialog {
   width: min(420px, calc(100vw - 32px));
   padding: 0;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-xl);
+  border-radius: var(--app-radius-xl);
   background: var(--surface-card);
   color: var(--text-primary);
   box-shadow: var(--shadow-overlay);
@@ -87,4 +88,4 @@
     transform: translateY(0) scale(1);
   }
 }
-
+}

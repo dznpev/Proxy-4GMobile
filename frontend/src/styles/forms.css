@@ -1,3 +1,4 @@
+@layer legacy {
 /* -- Detail / checklist --------------------------------------------------- */
 .detail-list {
   display: grid;
@@ -85,7 +86,7 @@
   margin-top: var(--space-10);
   padding: 9px 11px;
   border: 1px solid var(--warning-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background: var(--warning-bg);
   color: var(--warning-fg);
   font-size: var(--font-size-sm);
@@ -147,7 +148,7 @@
   gap: 2px;
   padding: 2px;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background: var(--surface-card);
 }
 
@@ -222,7 +223,7 @@
   min-height: 36px;
   padding: 6px 10px;
   border: 1px solid var(--border-control);
-  border-radius: var(--radius-xs);
+  border-radius: var(--app-radius-xs);
   background: var(--surface-card);
   color: var(--text-primary);
   font-size: var(--font-size-md);
@@ -308,7 +309,7 @@
   margin-top: var(--space-3);
   padding: 7px 9px;
   border: 1px solid var(--border-default);
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   cursor: pointer;
   transition: background var(--duration-instant) ease, border-color var(--duration-instant) ease;
 }
@@ -372,7 +373,7 @@
   margin-top: var(--space-10);
   padding: 9px 11px;
   border: 1px solid;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   font-size: var(--font-size-sm);
   line-height: 1.55;
 }
@@ -410,7 +411,7 @@
   padding: 9px 10px;
   border: 1px solid var(--border-default);
   border-left: 3px solid var(--info-solid);
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background: var(--surface-card);
   box-shadow: var(--shadow-overlay);
   font-size: var(--font-size-sm);
@@ -492,4 +493,4 @@
   width: 14px;
   height: 14px;
 }
-
+}

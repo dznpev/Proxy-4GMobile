@@ -103,12 +103,12 @@
   --space-15: 48px;
 
   /* Radius / shadow / motion */
-  --radius-xs: 7px;
-  --radius-sm: 8px;
-  --radius-md: 9px;
-  --radius-lg: 10px;
-  --radius-xl: 12px;
-  --radius-2xl: 9999px;
+  --app-radius-xs: 7px;
+  --app-radius-sm: 8px;
+  --app-radius-md: 9px;
+  --app-radius-lg: 10px;
+  --app-radius-xl: 12px;
+  --app-radius-pill: 9999px;
   --shadow-1: rgba(0, 0, 0, 0) 0 0 0 0, rgba(0, 0, 0, 0) 0 0 0 0, rgba(0, 0, 0, 0.05) 0 1px 2px 0;
   --shadow-overlay: rgba(0, 0, 0, 0.08) 0 12px 32px, rgba(0, 0, 0, 0.06) 0 2px 6px;
   --duration-instant: 150ms;
