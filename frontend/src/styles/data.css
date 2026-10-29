@@ -1,3 +1,4 @@
+@layer legacy {
 /* -- Switch --------------------------------------------------------------- */
 .switch-row {
   display: flex;
@@ -42,7 +43,7 @@
   width: 40px;
   height: 24px;
   border: 1px solid transparent;
-  border-radius: var(--radius-2xl);
+  border-radius: var(--app-radius-pill);
   background: var(--border-control);
   transition: background var(--duration-instant) ease;
 }
@@ -108,11 +109,11 @@
 }
 
 .data-table th:first-child {
-  border-top-left-radius: var(--radius-xs);
+  border-top-left-radius: var(--app-radius-xs);
 }
 
 .data-table th:last-child {
-  border-top-right-radius: var(--radius-xs);
+  border-top-right-radius: var(--app-radius-xs);
 }
 
 .data-table td {
@@ -163,7 +164,7 @@
   max-height: 232px;
   padding: var(--space-7) var(--space-9);
   overflow-y: auto;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background: var(--surface-base);
   color: var(--text-inverse);
   scrollbar-width: thin;
@@ -309,7 +310,7 @@
   margin-bottom: var(--space-9);
   padding: 9px 12px;
   border: 1px solid;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   font-size: var(--font-size-sm);
   line-height: 1.5;
 }
@@ -373,4 +374,4 @@
 .banner-info .banner-icon {
   background: var(--info-border);
 }
-
+}

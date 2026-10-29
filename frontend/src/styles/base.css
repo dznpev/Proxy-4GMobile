@@ -1,3 +1,4 @@
+@layer legacy {
 /* -- Reset / base --------------------------------------------------------- */
 *,
 *::before,
@@ -172,7 +173,7 @@ code {
   left: 10px;
   z-index: 100;
   padding: 10px 14px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background: var(--accent);
   color: var(--text-inverse);
   font-size: var(--font-size-md);
@@ -192,9 +193,9 @@ code {
   z-index: 90;
   padding: 12px 16px;
   border: 1px solid var(--danger-border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   background: var(--danger-bg);
   color: var(--danger-fg);
   font-size: var(--font-size-md);
 }
-
+}

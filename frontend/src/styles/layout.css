@@ -1,3 +1,4 @@
+@layer legacy {
 /* -- App shell ------------------------------------------------------------ */
 .app-shell {
   display: grid;
@@ -33,7 +34,7 @@
   align-items: center;
   gap: 10px;
   min-height: 44px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   color: var(--text-inverse);
   text-decoration: none;
 }
@@ -44,7 +45,7 @@
   width: 34px;
   height: 34px;
   flex: none;
-  border-radius: var(--radius-md);
+  border-radius: var(--app-radius-md);
   background: var(--text-inverse);
   color: var(--surface-base);
 }
@@ -102,7 +103,7 @@
   gap: 10px;
   min-height: 40px;
   padding: 0 10px;
-  border-radius: var(--radius-sm);
+  border-radius: var(--app-radius-sm);
   color: var(--text-inverse-muted);
   font-size: var(--font-size-md);
   font-weight: 500;
@@ -139,7 +140,7 @@
   bottom: 9px;
   left: 0;
   width: 2px;
-  border-radius: var(--radius-2xl);
+  border-radius: var(--app-radius-pill);
   background: var(--text-inverse);
   content: "";
 }
@@ -351,4 +352,4 @@
   color: var(--text-muted);
   font-size: var(--font-size-xs);
 }
-
+}
