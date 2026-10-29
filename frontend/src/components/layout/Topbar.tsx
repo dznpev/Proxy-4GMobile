@@ -1,6 +1,7 @@
 import type { RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../Icon';
+import { Button } from '../ui/button';
 import { StatusPill } from '../ui/StatusPill';
 import { ROUTES } from '../../lib/constants';
 import { statusSummary } from '../../lib/status';
@@ -49,18 +50,20 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
 
   return (
     <header className="topbar">
-      <button
+      <Button
         ref={menuButtonRef}
-        className="icon-btn menu-toggle"
+        className="menu-toggle min-[1025px]:hidden max-[1025px]:min-h-11 max-[1025px]:min-w-11"
         id="menu-toggle"
         type="button"
+        variant="ghost"
+        size="icon-sm"
         aria-label="Mở điều hướng"
         aria-controls="sidebar"
         aria-expanded={menuOpen ? 'true' : 'false'}
         onClick={onMenuToggle}
       >
         <Icon name="menu" />
-      </button>
+      </Button>
 
       <div className="page-heading">
         <p className="eyebrow" id="page-eyebrow">
@@ -72,31 +75,38 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
       </div>
 
       <div className="topbar-actions">
-        <StatusPill tone={summary.tone} label={summary.label} />
-        <button
-          className={`btn btn-secondary${refreshing ? ' is-loading' : ''}`}
+        <StatusPill
+          className="max-sm:hidden"
+          tone={summary.tone}
+          label={summary.label}
+        />
+        <Button
           id="refresh-btn"
           type="button"
+          variant="outline"
+          size="sm"
+          className="pointer-coarse:min-h-11"
+          loading={refreshing}
           aria-label="Làm mới trạng thái"
-          aria-busy={refreshing ? 'true' : 'false'}
-          disabled={refreshing}
           onClick={() => void refreshAll({ spinner: true })}
         >
-          <Icon name="refresh" />
+          {refreshing ? null : <Icon name="refresh" />}
           <span className="btn-label">Làm mới</span>
-        </button>
-        <button
-          className="btn btn-primary"
+        </Button>
+        <Button
           id="rotate-btn"
           type="button"
-          aria-label="Xoay IP ngay"
+          size="sm"
+          className="pointer-coarse:min-h-11"
+          loading={rotatePending}
           disabled={!canRotate}
+          aria-label="Xoay IP ngay"
           title={rotateTitle}
           onClick={() => void startRotation()}
         >
-          <Icon name="refresh" />
+          {rotatePending ? null : <Icon name="refresh" />}
           <span className="btn-label">Xoay IP</span>
-        </button>
+        </Button>
       </div>
     </header>
   );
