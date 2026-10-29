@@ -2,6 +2,26 @@ import { useState } from 'react';
 import { Icon } from '../components/Icon';
 import { HistoryRows } from '../components/data/HistoryRows';
 import { useDashboard } from '../app/providers/DashboardProvider';
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from '../components/ui/empty';
+import {
+  SegmentedControl,
+  SegmentedControlItem,
+} from '../components/ui/segmented-control';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
+import { Button } from '../components/ui/button';
 
 type HistoryFilter = 'all' | 'success' | 'failed';
 
@@ -16,12 +36,18 @@ export function HistoryPage() {
     useDashboard();
   const [filter, setFilter] = useState<HistoryFilter>('all');
 
-  const rows = history.filter((item) => filter === 'all' || item.status === filter);
+  const rows = history.filter(
+    (item) => filter === 'all' || item.status === filter,
+  );
   const filtered = filter !== 'all';
   const empty = historyLoaded && rows.length === 0;
 
   return (
-    <section className="page" data-page="history" aria-labelledby="history-page-title">
+    <section
+      className="page"
+      data-page="history"
+      aria-labelledby="history-page-title"
+    >
       <div className="page-lead">
         <div>
           <h2 className="page-section-title" id="history-page-title">
@@ -34,34 +60,38 @@ export function HistoryPage() {
       </div>
 
       <div className="toolbar">
-        <div className="segmented" role="group" aria-label="Lọc theo trạng thái xoay">
+        <SegmentedControl
+          aria-label="Lọc theo trạng thái xoay"
+          className="max-sm:w-full"
+          role="group"
+        >
           {FILTERS.map((item) => (
-            <button
+            <SegmentedControlItem
               key={item.value}
-              type="button"
               aria-pressed={filter === item.value ? 'true' : 'false'}
+              className="max-sm:flex-1"
+              data-checked={filter === item.value ? '' : undefined}
               onClick={() => setFilter(item.value)}
             >
               {item.label}
-            </button>
+            </SegmentedControlItem>
           ))}
-        </div>
+        </SegmentedControl>
         <div className="toolbar-end">
           <span className="meta-text">
             {filtered
               ? `${rows.length} / ${history.length} lần xoay`
               : `${history.length} lần xoay`}
           </span>
-          <button
-            className={`btn btn-secondary${clearingHistory ? ' is-loading' : ''}`}
-            type="button"
+          <Button
+            variant="outline"
             disabled={history.length === 0 || clearingHistory}
-            aria-busy={clearingHistory ? 'true' : 'false'}
+            loading={clearingHistory}
             onClick={() => void clearHistory()}
           >
-            <Icon name="trash" />
+            {clearingHistory ? null : <Icon name="trash" />}
             <span>Xóa lịch sử</span>
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -69,46 +99,48 @@ export function HistoryPage() {
         <h2 className="visually-hidden" id="history-table-title">
           Bảng lịch sử xoay IP
         </h2>
-        <div className="table-wrap" hidden={empty}>
-          <table className="data-table data-table-wide">
-            <caption className="visually-hidden">
+        {empty ? (
+          <Empty>
+            <EmptyMedia variant="icon">
+              <Icon name="history" />
+            </EmptyMedia>
+            <EmptyHeader>
+              <EmptyTitle>
+                {filtered ? 'Không có lần xoay phù hợp' : 'Chưa có lần xoay IP nào'}
+              </EmptyTitle>
+              <EmptyDescription>
+                {filtered
+                  ? 'Thử chọn bộ lọc khác để xem toàn bộ lịch sử.'
+                  : 'Xoay IP đầu tiên để bắt đầu ghi lịch sử.'}
+              </EmptyDescription>
+            </EmptyHeader>
+            {filtered ? null : (
+              <Button className="mt-1" onClick={() => void startRotation()}>
+                Xoay IP ngay
+              </Button>
+            )}
+          </Empty>
+        ) : (
+          <Table className="min-w-[780px]">
+            <TableCaption className="visually-hidden">
               Toàn bộ lịch sử xoay IP, mới nhất trước
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Thời gian</th>
-                <th scope="col">Kiểu</th>
-                <th scope="col">IP trước</th>
-                <th scope="col">IP mới</th>
-                <th scope="col">Nhà mạng</th>
-                <th scope="col">Thời lượng</th>
-                <th scope="col">Trạng thái</th>
-              </tr>
-            </thead>
-            <tbody>
+            </TableCaption>
+            <TableHeader>
+              <TableRow>
+                <TableHead scope="col">Thời gian</TableHead>
+                <TableHead scope="col">Kiểu</TableHead>
+                <TableHead scope="col">IP trước</TableHead>
+                <TableHead scope="col">IP mới</TableHead>
+                <TableHead scope="col">Nhà mạng</TableHead>
+                <TableHead scope="col">Thời lượng</TableHead>
+                <TableHead scope="col">Trạng thái</TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
               <HistoryRows items={rows} />
-            </tbody>
-          </table>
-        </div>
-        <div className="empty-state" hidden={!empty}>
-          <div className="empty-icon" aria-hidden="true">
-            <Icon name="history" />
-          </div>
-          <h3>{filtered ? 'Không có lần xoay phù hợp' : 'Chưa có lần xoay IP nào'}</h3>
-          <p>
-            {filtered
-              ? 'Thử chọn bộ lọc khác để xem toàn bộ lịch sử.'
-              : 'Xoay IP đầu tiên để bắt đầu ghi lịch sử.'}
-          </p>
-          <button
-            className="btn btn-primary"
-            type="button"
-            hidden={filtered}
-            onClick={() => void startRotation()}
-          >
-            Xoay IP ngay
-          </button>
-        </div>
+            </TableBody>
+          </Table>
+        )}
       </article>
     </section>
   );
