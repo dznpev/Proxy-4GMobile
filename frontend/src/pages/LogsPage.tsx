@@ -12,6 +12,13 @@ import {
   EmptyTitle,
 } from '../components/ui/empty';
 import { Input } from '../components/ui/input';
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { useDashboard } from '../app/providers/DashboardProvider';
 
 const LEVELS = [
@@ -63,26 +70,36 @@ export function LogsPage() {
       </div>
 
       <div className="toolbar toolbar-wrap">
-        <label
-          className="flex items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-start"
-          htmlFor="log-level"
-        >
-          <span className="whitespace-nowrap text-sm font-medium text-(--text-secondary)">
+        <div className="flex items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-start">
+          <span
+            id="log-level-label"
+            className="whitespace-nowrap text-sm font-medium text-(--text-secondary)"
+          >
             Mức độ
           </span>
-          <select
-            id="log-level"
-            className="h-9 w-auto min-w-[150px] rounded-[7px] border border-input bg-card px-2.5 text-base text-foreground outline-none transition-[border-color,box-shadow] hover:border-(--text-secondary) focus-visible:border-ring focus-visible:outline-2 focus-visible:outline-solid focus-visible:outline-offset-1 focus-visible:outline-ring max-[640px]:w-full"
+          <Select
+            items={LEVELS}
             value={level}
-            onChange={(event) => setLevel(event.currentTarget.value)}
+            onValueChange={(value) => {
+              if (value !== null) setLevel(value);
+            }}
           >
-            {LEVELS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
+            <SelectTrigger
+              id="log-level"
+              aria-labelledby="log-level-label"
+              className="w-auto min-w-[150px] max-[640px]:w-full"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              {LEVELS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectPopup>
+          </Select>
+        </div>
         <label
           className="flex items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-start"
           htmlFor="log-search"
