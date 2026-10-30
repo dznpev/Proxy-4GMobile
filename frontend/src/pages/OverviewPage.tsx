@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import type { RotationInfo, Tone } from '../api/types';
 import { Icon } from '../components/Icon';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/button';
 import {
   Card,
   CardAction,
@@ -10,6 +11,7 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/card';
+import { Switch } from '../components/ui/switch';
 import {
   Table,
   TableBody,
@@ -352,12 +354,12 @@ export function OverviewPage() {
 
           <CardFooter>
             <span className="meta-text">{checked}</span>
-            <button
-              className={`btn btn-ghost btn-sm${checking ? ' is-loading' : ''}`}
-              type="button"
+            <Button
+              variant="ghost"
+              size="sm"
               aria-label="Kiểm tra lại kết nối"
-              aria-busy={checking ? 'true' : 'false'}
-              disabled={!device?.connected || rotating || checking}
+              loading={checking}
+              disabled={!device?.connected || rotating}
               title={
                 rotating
                   ? 'Đang xoay IP, không thể kiểm tra lúc này.'
@@ -367,9 +369,9 @@ export function OverviewPage() {
               }
               onClick={() => void checkConnection()}
             >
-              <Icon name="wifi" />
+              {checking ? null : <Icon name="wifi" />}
               <span>Kiểm tra lại</span>
-            </button>
+            </Button>
           </CardFooter>
         </Card>
 
@@ -428,17 +430,15 @@ export function OverviewPage() {
 
           <CardFooter>
             <span className="meta-text">{autoNextSummary}</span>
-            <button
-              className={`btn btn-primary${rotatePending ? ' is-loading' : ''}`}
-              type="button"
+            <Button
+              loading={rotatePending}
               disabled={!canRotate}
               title={rotateDisabledReason}
-              aria-busy={rotatePending ? 'true' : 'false'}
               onClick={() => void startRotation()}
             >
-              <Icon name="refresh" />
+              {rotatePending ? null : <Icon name="refresh" />}
               <span>Xoay IP ngay</span>
-            </button>
+            </Button>
           </CardFooter>
         </Card>
       </div>
@@ -522,16 +522,16 @@ export function OverviewPage() {
           </dl>
 
           <CardFooter>
-            <button
-              className={`btn btn-secondary btn-sm${reconnecting ? ' is-loading' : ''}`}
-              type="button"
+            <Button
+              variant="outline"
+              size="sm"
+              loading={reconnecting}
               disabled={reconnectDisabled}
               title={reconnectTitle}
-              aria-busy={reconnecting ? 'true' : 'false'}
               onClick={() => void reconnectDevice()}
             >
               Kết nối lại
-            </button>
+            </Button>
             <Link className="text-link" to="/device">
               Xử lý sự cố
             </Link>
@@ -600,19 +600,13 @@ export function OverviewPage() {
                 Tự xoay theo chu kỳ khi thiết bị đang kết nối.
               </p>
             </div>
-            <label className="switch">
-              <input
-                type="checkbox"
-                checked={autoChecked}
-                disabled={autoBusy}
-                aria-labelledby="auto-toggle-label"
-                aria-describedby="auto-toggle-help"
-                onChange={(event) => void handleAutoToggle(event.currentTarget.checked)}
-              />
-              <span className="switch-track" aria-hidden="true">
-                <span className="switch-thumb" />
-              </span>
-            </label>
+            <Switch
+              checked={autoChecked}
+              disabled={autoBusy}
+              aria-labelledby="auto-toggle-label"
+              aria-describedby="auto-toggle-help"
+              onCheckedChange={(checked) => void handleAutoToggle(checked)}
+            />
           </div>
 
           <dl className="compact-list">

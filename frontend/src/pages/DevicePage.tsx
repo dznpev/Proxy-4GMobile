@@ -1,5 +1,6 @@
 import { Icon } from '../components/Icon';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/button';
 import {
   Card,
   CardAction,
@@ -124,26 +125,24 @@ export function DevicePage() {
           </div>
 
           <CardFooter>
-            <button
-              className={`btn btn-secondary${reconnecting ? ' is-loading' : ''}`}
-              type="button"
+            <Button
+              variant="outline"
+              loading={reconnecting}
               disabled={reconnectDisabled}
               title={reconnectTitle}
-              aria-busy={reconnecting ? 'true' : 'false'}
               onClick={() => void reconnectDevice()}
             >
               Kết nối lại
-            </button>
-            <button
-              className={`btn btn-secondary${restarting ? ' is-loading' : ''}`}
-              type="button"
+            </Button>
+            <Button
+              variant="outline"
+              loading={restarting}
               disabled={restartDisabled}
               title={restartTitle}
-              aria-busy={restarting ? 'true' : 'false'}
               onClick={() => void restartProxy()}
             >
               Khởi động lại daemon
-            </button>
+            </Button>
           </CardFooter>
         </Card>
 
