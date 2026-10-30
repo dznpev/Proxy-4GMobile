@@ -167,26 +167,6 @@ code {
   height: 14px;
 }
 
-.skip-link {
-  position: fixed;
-  top: 10px;
-  left: 10px;
-  z-index: 100;
-  padding: 10px 14px;
-  border-radius: var(--app-radius-sm);
-  background: var(--accent);
-  color: var(--text-inverse);
-  font-size: var(--font-size-md);
-  font-weight: 600;
-  text-decoration: none;
-  transform: translateY(-160%);
-  transition: transform var(--duration-instant) ease;
-}
-
-.skip-link:focus {
-  transform: translateY(0);
-}
-
 .noscript {
   position: fixed;
   inset: auto 16px 16px;
