@@ -77,7 +77,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
         </h1>
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2 max-[800px]:gap-1.5">
+      <div className="ml-auto flex shrink-0 items-center gap-2 max-[800px]:gap-1.5 max-[520px]:w-full max-[520px]:justify-end">
         <StatusPill
           className="max-[640px]:hidden"
           tone={summary.tone}
@@ -94,7 +94,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           onClick={() => void refreshAll({ spinner: true })}
         >
           {refreshing ? null : <Icon name="refresh" />}
-          <span className="max-[640px]:hidden">Làm mới</span>
+          <span>Làm mới</span>
         </Button>
         <Button
           id="rotate-btn"
@@ -108,7 +108,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           onClick={() => void startRotation()}
         >
           {rotatePending ? null : <Icon name="refresh" />}
-          <span className="max-[640px]:hidden">Xoay IP</span>
+          <span>Xoay IP</span>
         </Button>
       </div>
     </header>

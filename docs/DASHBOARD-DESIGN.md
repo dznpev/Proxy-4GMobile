@@ -76,7 +76,7 @@ Quy tắc:
 
 - Sidebar desktop: 240px; main content tối đa 1120px, căn giữa.
 - Topbar cao 62px, sticky; nội dung cuộn bên dưới.
-- Breakpoints: 1280px (grid co), 1120px (hero/split một cột), 1024px (sidebar thành drawer), 800px (form một cột), 640px (ẩn label button, bảng gọn), 520px (stat một cột).
+- Breakpoints: 1280px (grid co), 1120px (hero/split một cột), 1024px (sidebar thành drawer), 800px (form một cột), 640px (bảng gọn, hiện status pill), 520px (action topbar xuống hàng, stat một cột).
 - Touch target **must** tối thiểu 24×24 CSS px; nav mobile và button chính nên đạt 44px chiều cao.
 
 ## 3. Quy tắc component
@@ -106,7 +106,7 @@ Quy tắc:
 - Anatomy: nút menu (mobile) → eyebrow + tiêu đề trang → status pill → Làm mới → Xoay IP.
 - States: status pill có neutral/success/warning/danger/info; button có hover/focus/active/disabled/loading.
 - Keyboard: thứ tự tab theo DOM; `aria-label` cho button icon; `aria-expanded` cho menu.
-- Responsive: dưới 640px ẩn label button (giữ icon + `aria-label`); ẩn status pill để nhường chỗ, trạng thái vẫn còn trong sidebar/session card.
+- Responsive: label “Làm mới”/“Xoay IP” **must** luôn hiển thị vì hai nút dùng cùng icon refresh; dưới 640px ẩn status pill để nhường chỗ (trạng thái vẫn còn trong sidebar/session card); dưới 520px nhóm action xuống hàng riêng, full-width và căn phải.
 - Loading: icon refresh quay; button có `aria-busy="true"` và bị disable trong lúc gửi.
 
 ### 3.3 Card
