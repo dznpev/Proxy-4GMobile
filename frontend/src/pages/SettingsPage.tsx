@@ -159,7 +159,7 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <form id="settings-form" noValidate onSubmit={(event) => void handleSubmit(event)}>
+      <form id="settings-form" className="mb-4" noValidate onSubmit={(event) => void handleSubmit(event)}>
         <Card render={<article />} aria-labelledby="settings-auto-title">
           <CardHeader>
             <div>
