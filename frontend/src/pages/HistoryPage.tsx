@@ -22,6 +22,7 @@ import {
   TableRow,
 } from '../components/ui/table';
 import { Button } from '../components/ui/button';
+import { Card } from '../components/ui/card';
 
 type HistoryFilter = 'all' | 'success' | 'failed';
 
@@ -95,7 +96,7 @@ export function HistoryPage() {
         </div>
       </div>
 
-      <article className="card" aria-labelledby="history-table-title">
+      <Card render={<article />} aria-labelledby="history-table-title">
         <h2 className="visually-hidden" id="history-table-title">
           Bảng lịch sử xoay IP
         </h2>
@@ -141,7 +142,7 @@ export function HistoryPage() {
             </TableBody>
           </Table>
         )}
-      </article>
+      </Card>
     </section>
   );
 }
