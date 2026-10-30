@@ -131,6 +131,16 @@ export function IconSprite() {
           strokeLinejoin="round"
         />
       </symbol>
+      <symbol id="i-chevrons-up-down" viewBox="0 0 24 24">
+        <path
+          d="m7 15 5 5 5-5M7 9l5-5 5 5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </symbol>
       <symbol id="i-alert" viewBox="0 0 24 24">
         <path
           d="M12 3.5 21 20H3l9-16.5Z"

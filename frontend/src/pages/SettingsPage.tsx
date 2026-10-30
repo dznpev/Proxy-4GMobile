@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { RotateMethod, Settings } from '../api/types';
 import { Badge } from '../components/ui/Badge';
+import { Button } from '../components/ui/button';
 import {
   Card,
   CardAction,
@@ -8,6 +9,10 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/card';
+import { Input } from '../components/ui/input';
+import { Label } from '../components/ui/label';
+import { Radio, RadioGroup } from '../components/ui/radio-group';
+import { Switch } from '../components/ui/switch';
 import { useDashboard } from '../app/providers/DashboardProvider';
 import { useToast } from '../app/providers/ToastProvider';
 import { DEFAULT_SETTINGS } from '../lib/constants';
@@ -178,35 +183,33 @@ export function SettingsPage() {
 
           <div className="switch-row switch-row-bordered">
             <div>
-              <label className="switch-label" htmlFor="setting-auto">
+              <Label
+                className="text-base text-foreground"
+                id="setting-auto-label"
+                htmlFor="setting-auto"
+              >
                 Tự động xoay IP
-              </label>
+              </Label>
               <p className="meta-text" id="setting-auto-help">
                 Khi bật, proxy tự xoay theo chu kỳ nếu thiết bị đang kết nối.
               </p>
             </div>
-            <label className="switch">
-              <input
-                id="setting-auto"
-                type="checkbox"
-                checked={form.auto_rotate_enabled}
-                aria-describedby="setting-auto-help"
-                onChange={(event) => {
-                  const checked = event.currentTarget.checked;
-                  setForm((current) => ({ ...current, auto_rotate_enabled: checked }));
-                  markDirty();
-                }}
-              />
-              <span className="switch-track" aria-hidden="true">
-                <span className="switch-thumb" />
-              </span>
-            </label>
+            <Switch
+              id="setting-auto"
+              checked={form.auto_rotate_enabled}
+              aria-labelledby="setting-auto-label"
+              aria-describedby="setting-auto-help"
+              onCheckedChange={(checked) => {
+                setForm((current) => ({ ...current, auto_rotate_enabled: checked }));
+                markDirty();
+              }}
+            />
           </div>
 
           <div className="form-grid">
             <div className="field">
-              <label htmlFor="setting-interval">Chu kỳ xoay (phút)</label>
-              <input
+              <Label htmlFor="setting-interval">Chu kỳ xoay (phút)</Label>
+              <Input
                 ref={intervalRef}
                 id="setting-interval"
                 type="number"
@@ -241,39 +244,48 @@ export function SettingsPage() {
             </div>
 
             <fieldset className="field field-radio-group">
-              <legend>Phương thức xoay</legend>
-              <label className="radio-row">
-                <input
-                  type="radio"
-                  name="rotate-method"
-                  value="airplane"
-                  checked={form.rotate_method === 'airplane'}
-                  onChange={() => {
-                    setForm((current) => ({ ...current, rotate_method: 'airplane' }));
-                    markDirty();
-                  }}
-                />
-                <span>
-                  <strong>Chế độ máy bay</strong>
-                  <small>Ổn định hơn, ngắt 4G khoảng 5–10 giây.</small>
-                </span>
-              </label>
-              <label className="radio-row">
-                <input
-                  type="radio"
-                  name="rotate-method"
-                  value="data"
-                  checked={form.rotate_method === 'data'}
-                  onChange={() => {
-                    setForm((current) => ({ ...current, rotate_method: 'data' }));
-                    markDirty();
-                  }}
-                />
-                <span>
-                  <strong>Dữ liệu di động</strong>
-                  <small>Tắt/mở dữ liệu; phù hợp một số nhà mạng.</small>
-                </span>
-              </label>
+              <legend id="rotate-method-label">Phương thức xoay</legend>
+              <RadioGroup
+                name="rotate-method"
+                value={form.rotate_method}
+                aria-labelledby="rotate-method-label"
+                onValueChange={(value) => {
+                  setForm((current) => ({
+                    ...current,
+                    rotate_method: value as RotateMethod,
+                  }));
+                  markDirty();
+                }}
+              >
+                <label className="radio-row">
+                  <Radio
+                    className="mt-[3px]"
+                    value="airplane"
+                    aria-labelledby="rotate-method-airplane-label"
+                    aria-describedby="rotate-method-airplane-help"
+                  />
+                  <span>
+                    <strong id="rotate-method-airplane-label">Chế độ máy bay</strong>
+                    <small id="rotate-method-airplane-help">
+                      Ổn định hơn, ngắt 4G khoảng 5–10 giây.
+                    </small>
+                  </span>
+                </label>
+                <label className="radio-row">
+                  <Radio
+                    className="mt-[3px]"
+                    value="data"
+                    aria-labelledby="rotate-method-data-label"
+                    aria-describedby="rotate-method-data-help"
+                  />
+                  <span>
+                    <strong id="rotate-method-data-label">Dữ liệu di động</strong>
+                    <small id="rotate-method-data-help">
+                      Tắt/mở dữ liệu; phù hợp một số nhà mạng.
+                    </small>
+                  </span>
+                </label>
+              </RadioGroup>
             </fieldset>
           </div>
 
@@ -283,22 +295,17 @@ export function SettingsPage() {
           </div>
 
           <CardFooter>
-            <button
-              className={`btn btn-primary${saving ? ' is-loading' : ''}`}
-              type="submit"
-              disabled={!dirty || saving}
-              aria-busy={saving ? 'true' : 'false'}
-            >
+            <Button type="submit" loading={saving} disabled={!dirty}>
               Lưu cài đặt
-            </button>
-            <button
-              className="btn btn-ghost"
+            </Button>
+            <Button
+              variant="ghost"
               type="button"
               disabled={saving}
               onClick={handleReset}
             >
               Khôi phục mặc định
-            </button>
+            </Button>
             <span className="meta-text" role="status">
               {dirty ? 'Chưa lưu thay đổi' : savedText}
             </span>

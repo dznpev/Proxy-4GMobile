@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { LogList } from '../components/data/LogList';
+import { Button } from '../components/ui/button';
 import { Card } from '../components/ui/card';
+import { Checkbox } from '../components/ui/checkbox';
 import {
   Empty,
   EmptyDescription,
@@ -9,6 +11,14 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from '../components/ui/empty';
+import { Input } from '../components/ui/input';
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { useDashboard } from '../app/providers/DashboardProvider';
 
 const LEVELS = [
@@ -60,53 +70,77 @@ export function LogsPage() {
       </div>
 
       <div className="toolbar toolbar-wrap">
-        <label className="field field-inline" htmlFor="log-level">
-          <span>Mức độ</span>
-          <select
-            id="log-level"
-            value={level}
-            onChange={(event) => setLevel(event.currentTarget.value)}
+        <div className="flex items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-start">
+          <span
+            id="log-level-label"
+            className="whitespace-nowrap text-sm font-medium text-(--text-secondary)"
           >
-            {LEVELS.map((item) => (
-              <option key={item.value} value={item.value}>
-                {item.label}
-              </option>
-            ))}
-          </select>
-        </label>
-        <label className="field field-inline" htmlFor="log-search">
-          <span>Tìm kiếm</span>
-          <input
+            Mức độ
+          </span>
+          <Select
+            items={LEVELS}
+            value={level}
+            onValueChange={(value) => {
+              if (value !== null) setLevel(value);
+            }}
+          >
+            <SelectTrigger
+              id="log-level"
+              aria-labelledby="log-level-label"
+              className="w-auto min-w-[150px] max-[640px]:w-full"
+            >
+              <SelectValue />
+            </SelectTrigger>
+            <SelectPopup>
+              {LEVELS.map((item) => (
+                <SelectItem key={item.value} value={item.value}>
+                  {item.label}
+                </SelectItem>
+              ))}
+            </SelectPopup>
+          </Select>
+        </div>
+        <label
+          className="flex items-center gap-1.5 max-[640px]:w-full max-[640px]:flex-col max-[640px]:items-start"
+          htmlFor="log-search"
+        >
+          <span className="whitespace-nowrap text-sm font-medium text-(--text-secondary)">
+            Tìm kiếm
+          </span>
+          <Input
             id="log-search"
             type="search"
             placeholder="Nội dung nhật ký"
             autoComplete="off"
+            className="w-auto min-w-[220px] max-[640px]:w-full"
             value={query}
             onChange={(event) => setQuery(event.currentTarget.value)}
           />
         </label>
-        <label className="checkbox-inline">
-          <input
-            type="checkbox"
+        <label
+          className="flex min-h-9 cursor-pointer items-center gap-1.5 whitespace-nowrap text-sm text-(--text-secondary)"
+          htmlFor="log-follow"
+        >
+          <Checkbox
+            id="log-follow"
             checked={follow}
-            onChange={(event) => setFollow(event.currentTarget.checked)}
+            aria-labelledby="log-follow-label"
+            onCheckedChange={(checked) => setFollow(checked)}
           />
-          <span>Tự cuộn</span>
+          <span id="log-follow-label">Tự cuộn</span>
         </label>
         <div className="toolbar-end">
           <span className="meta-text">
             {items.length === total ? `${total} dòng` : `${items.length} / ${total} dòng`}
           </span>
-          <button
-            className={`btn btn-secondary${clearingLogs ? ' is-loading' : ''}`}
-            type="button"
-            disabled={clearingLogs}
-            aria-busy={clearingLogs ? 'true' : 'false'}
+          <Button
+            variant="outline"
+            loading={clearingLogs}
             onClick={() => void clearLogs()}
           >
-            <Icon name="trash" />
+            {clearingLogs ? null : <Icon name="trash" />}
             <span>Xóa nhật ký</span>
-          </button>
+          </Button>
         </div>
       </div>
 
