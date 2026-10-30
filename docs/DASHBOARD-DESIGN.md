@@ -275,6 +275,7 @@ Các tiêu chí kiểm thử được:
 ## 8. Ghi chú triển khai
 
 - Component dùng token trong `frontend/src/styles/tokens.css`; CSS chia theo `base`, `layout`, `controls`, `cards`, `data`, `forms`, `overlays`, `responsive` và import từ `index.css`.
+- Shell, sidebar, topbar và các control/overlay chính dùng Tailwind + primitive trong `frontend/src/components/ui/`; `@layer legacy` chỉ còn các primitive layout/form/log chưa migrate (`.page-lead`, `.grid-*`, `.field`, `.toolbar`, `.log-*`).
 - Kiến trúc React: `HashRouter` → `ToastProvider` → `ConfirmProvider` → `DashboardProvider` → `AppShell`; các trang đọc trạng thái chung qua `useDashboard`.
 - Logic polling 2,5 giây khi tab hiển thị, 10 giây khi ẩn; request status/logs được dedupe.
 - Dữ liệu từ API render qua JSX (React tự escape), không dùng `innerHTML`.
