@@ -113,6 +113,11 @@ export function IconSprite() {
           strokeLinecap="round"
         />
       </symbol>
+      <symbol id="i-more-horizontal" viewBox="0 0 24 24">
+        <circle cx="5" cy="12" r="1.6" fill="currentColor" />
+        <circle cx="12" cy="12" r="1.6" fill="currentColor" />
+        <circle cx="19" cy="12" r="1.6" fill="currentColor" />
+      </symbol>
       <symbol id="i-close" viewBox="0 0 24 24">
         <path
           d="m6 6 12 12M18 6 6 18"

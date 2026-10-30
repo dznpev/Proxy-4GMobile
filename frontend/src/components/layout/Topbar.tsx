@@ -1,7 +1,9 @@
-import type { RefObject } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../Icon';
 import { Button } from '../ui/button';
+import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '../ui/popover';
+import { Spinner } from '../ui/spinner';
 import { StatusPill } from '../ui/StatusPill';
 import { ROUTES } from '../../lib/constants';
 import { statusSummary } from '../../lib/status';
@@ -17,6 +19,24 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
   const { pathname } = useLocation();
   const route = pathname.replace(/^\//, '') || 'overview';
   const meta = ROUTES[route] ?? ROUTES.overview;
+  const [actionsOpen, setActionsOpen] = useState(false);
+  const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
+
+  const closeActions = () => {
+    setActionsOpen(false);
+    window.requestAnimationFrame(() => actionsButtonRef.current?.focus());
+  };
+
+  // Close the mobile action popover when the inline buttons return at 521px.
+  useEffect(() => {
+    const inlineActions = window.matchMedia('(min-width: 521px)');
+    const closeOnInline = () => {
+      if (inlineActions.matches) setActionsOpen(false);
+    };
+    closeOnInline();
+    inlineActions.addEventListener('change', closeOnInline);
+    return () => inlineActions.removeEventListener('change', closeOnInline);
+  }, []);
 
   const {
     status,
@@ -77,7 +97,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
         </h1>
       </div>
 
-      <div className="ml-auto flex shrink-0 items-center gap-2 max-[800px]:gap-1.5 max-[520px]:w-full max-[520px]:justify-end">
+      <div className="ml-auto flex shrink-0 items-center gap-2 max-[800px]:gap-1.5">
         <StatusPill
           className="max-[640px]:hidden"
           tone={summary.tone}
@@ -88,7 +108,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           type="button"
           variant="outline"
           size="sm"
-          className="pointer-coarse:min-h-11"
+          className="pointer-coarse:min-h-11 max-[520px]:hidden"
           loading={refreshing}
           aria-label="Làm mới trạng thái"
           onClick={() => void refreshAll({ spinner: true })}
@@ -100,7 +120,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           id="rotate-btn"
           type="button"
           size="sm"
-          className="pointer-coarse:min-h-11"
+          className="pointer-coarse:min-h-11 max-[520px]:hidden"
           loading={rotatePending}
           disabled={!canRotate}
           aria-label="Xoay IP ngay"
@@ -110,6 +130,72 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           {rotatePending ? null : <Icon name="refresh" />}
           <span>Xoay IP</span>
         </Button>
+
+        <Popover onOpenChange={setActionsOpen} open={actionsOpen}>
+          <PopoverTrigger
+            render={
+              <Button
+                ref={actionsButtonRef}
+                className="hidden max-[520px]:inline-flex max-[520px]:size-11 data-[popup-open]:border-(--border-control) data-[popup-open]:bg-accent"
+                id="topbar-actions-btn"
+                type="button"
+                variant="outline"
+                size="icon-sm"
+                aria-label={
+                  refreshing || rotatePending
+                    ? 'Đang xử lý thao tác'
+                    : 'Mở thao tác nhanh'
+                }
+                title="Thao tác nhanh"
+              />
+            }
+          >
+            {refreshing || rotatePending ? (
+              <Spinner className="size-4" />
+            ) : (
+              <Icon name="more-horizontal" />
+            )}
+          </PopoverTrigger>
+          <PopoverContent className="w-[min(17rem,calc(100vw-1rem))]">
+            <PopoverTitle className="px-1.5 pb-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+              Thao tác nhanh
+            </PopoverTitle>
+            <div className="grid gap-1.5">
+              <Button
+                className="min-h-11 w-full justify-start"
+                type="button"
+                variant="outline"
+                loading={refreshing}
+                onClick={() => {
+                  closeActions();
+                  void refreshAll({ spinner: true });
+                }}
+              >
+                {refreshing ? null : <Icon name="refresh" />}
+                <span>Làm mới</span>
+              </Button>
+              <Button
+                className="min-h-11 w-full justify-start"
+                type="button"
+                loading={rotatePending}
+                disabled={!canRotate}
+                title={rotateTitle}
+                onClick={() => {
+                  closeActions();
+                  void startRotation();
+                }}
+              >
+                {rotatePending ? null : <Icon name="refresh" />}
+                <span>Xoay IP</span>
+              </Button>
+            </div>
+            {rotateTitle ? (
+              <p className="px-1.5 pt-2 text-sm leading-snug text-muted-foreground">
+                {rotateTitle}
+              </p>
+            ) : null}
+          </PopoverContent>
+        </Popover>
       </div>
     </header>
   );
