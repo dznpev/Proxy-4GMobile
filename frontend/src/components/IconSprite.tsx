@@ -190,6 +190,26 @@ export function IconSprite() {
           strokeLinejoin="round"
         />
       </symbol>
+      <symbol id="i-chevron-left" viewBox="0 0 24 24">
+        <path
+          d="m14.5 6-6 6 6 6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </symbol>
+      <symbol id="i-chevron-right" viewBox="0 0 24 24">
+        <path
+          d="m9.5 6 6 6-6 6"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.8"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </symbol>
       <symbol id="i-database" viewBox="0 0 24 24">
         <ellipse
           cx="12"

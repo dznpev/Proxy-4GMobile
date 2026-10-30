@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { HistoryRows } from '../components/data/HistoryRows';
 import { useDashboard } from '../app/providers/DashboardProvider';
@@ -21,8 +21,15 @@ import {
   TableHeader,
   TableRow,
 } from '../components/ui/table';
+import {
+  Select,
+  SelectItem,
+  SelectPopup,
+  SelectTrigger,
+  SelectValue,
+} from '../components/ui/select';
 import { Button } from '../components/ui/button';
-import { Card } from '../components/ui/card';
+import { Card, CardFooter } from '../components/ui/card';
 
 type HistoryFilter = 'all' | 'success' | 'failed';
 
@@ -32,14 +39,35 @@ const FILTERS: Array<{ value: HistoryFilter; label: string }> = [
   { value: 'failed', label: 'Thất bại' },
 ];
 
+const PAGE_SIZES = [10, 25, 50, 100] as const;
+
+const PAGE_SIZE_ITEMS = PAGE_SIZES.map((size) => ({
+  value: String(size),
+  label: String(size),
+}));
+
 export function HistoryPage() {
   const { history, historyLoaded, clearingHistory, clearHistory, startRotation } =
     useDashboard();
   const [filter, setFilter] = useState<HistoryFilter>('all');
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState('10');
 
+  const pageSizeValue = Number(pageSize);
   const rows = history.filter(
     (item) => filter === 'all' || item.status === filter,
   );
+  const totalPages = Math.max(1, Math.ceil(rows.length / pageSizeValue));
+  const currentPage = Math.min(page, totalPages);
+  const pageStart = (currentPage - 1) * pageSizeValue;
+  const pageRows = rows.slice(pageStart, pageStart + pageSizeValue);
+  const rangeStart = rows.length === 0 ? 0 : pageStart + 1;
+  const rangeEnd = Math.min(pageStart + pageSizeValue, rows.length);
+
+  useEffect(() => {
+    if (page > totalPages) setPage(totalPages);
+  }, [page, totalPages]);
+
   const filtered = filter !== 'all';
   const empty = historyLoaded && rows.length === 0;
 
@@ -72,7 +100,10 @@ export function HistoryPage() {
               aria-pressed={filter === item.value ? 'true' : 'false'}
               className="max-sm:flex-1"
               data-checked={filter === item.value ? '' : undefined}
-              onClick={() => setFilter(item.value)}
+              onClick={() => {
+                setFilter(item.value);
+                setPage(1);
+              }}
             >
               {item.label}
             </SegmentedControlItem>
@@ -122,25 +153,102 @@ export function HistoryPage() {
             )}
           </Empty>
         ) : (
-          <Table className="min-w-[780px]">
-            <TableCaption className="visually-hidden">
-              Toàn bộ lịch sử xoay IP, mới nhất trước
-            </TableCaption>
-            <TableHeader>
-              <TableRow>
-                <TableHead scope="col">Thời gian</TableHead>
-                <TableHead scope="col">Kiểu</TableHead>
-                <TableHead scope="col">IP trước</TableHead>
-                <TableHead scope="col">IP mới</TableHead>
-                <TableHead scope="col">Nhà mạng</TableHead>
-                <TableHead scope="col">Thời lượng</TableHead>
-                <TableHead scope="col">Trạng thái</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              <HistoryRows items={rows} />
-            </TableBody>
-          </Table>
+          <>
+            <Table className="min-w-[780px]">
+              <TableCaption className="visually-hidden">
+                Lịch sử xoay IP, mới nhất trước
+              </TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Thời gian</TableHead>
+                  <TableHead scope="col">Kiểu</TableHead>
+                  <TableHead scope="col">IP trước</TableHead>
+                  <TableHead scope="col">IP mới</TableHead>
+                  <TableHead scope="col">Nhà mạng</TableHead>
+                  <TableHead scope="col">Thời lượng</TableHead>
+                  <TableHead scope="col">Trạng thái</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                <HistoryRows items={pageRows} />
+              </TableBody>
+            </Table>
+
+            {rows.length > 0 ? (
+              <CardFooter
+                className="max-[640px]:flex-col max-[640px]:items-start"
+                render={<nav aria-label="Phân trang lịch sử" />}
+              >
+                <div className="flex flex-wrap items-center gap-3">
+                  <span
+                    className="text-sm text-muted-foreground"
+                    aria-live="polite"
+                  >
+                    {rangeStart}–{rangeEnd} / {rows.length} lần xoay
+                  </span>
+                  <div className="flex items-center gap-1.5">
+                    <span
+                      className="whitespace-nowrap text-sm text-muted-foreground"
+                      id="history-page-size-label"
+                    >
+                      Số dòng
+                    </span>
+                    <Select
+                      items={PAGE_SIZE_ITEMS}
+                      value={pageSize}
+                      onValueChange={(value) => {
+                        if (value !== null) {
+                          setPageSize(value);
+                          setPage(1);
+                        }
+                      }}
+                    >
+                      <SelectTrigger
+                        id="history-page-size"
+                        aria-labelledby="history-page-size-label"
+                        className="h-[30px] w-auto min-w-[74px]"
+                      >
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectPopup>
+                        {PAGE_SIZES.map((size) => (
+                          <SelectItem key={size} value={String(size)}>
+                            {size}
+                          </SelectItem>
+                        ))}
+                      </SelectPopup>
+                    </Select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">
+                    Trang {currentPage} / {totalPages}
+                  </span>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Trang trước"
+                    disabled={currentPage === 1}
+                    onClick={() => setPage(Math.max(1, currentPage - 1))}
+                    className="pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                  >
+                    <Icon name="chevron-left" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon-sm"
+                    aria-label="Trang sau"
+                    disabled={currentPage === totalPages}
+                    onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
+                    className="pointer-coarse:min-h-11 pointer-coarse:min-w-11"
+                  >
+                    <Icon name="chevron-right" />
+                  </Button>
+                </div>
+              </CardFooter>
+            ) : null}
+          </>
         )}
       </Card>
     </section>
