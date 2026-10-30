@@ -9,14 +9,21 @@ import { cn } from '@/lib/utils';
  * shadow; header/footer only carry the spacing from the legacy
  * `.card-head` / `.card-foot` rules.
  */
+export interface CardProps extends useRender.ComponentProps<'div'> {
+  /** Removes card padding and clips the content, matching legacy `.card-flush`. */
+  flush?: boolean;
+}
+
 export function Card({
   className,
   render,
+  flush = false,
   ...props
-}: useRender.ComponentProps<'div'>): React.ReactElement {
+}: CardProps): React.ReactElement {
   const defaultProps = {
     className: cn(
       'relative flex min-w-0 flex-col rounded-[var(--app-radius-lg)] border border-border bg-card p-5 text-card-foreground shadow-[var(--shadow-1)] max-[640px]:p-4 max-[520px]:p-3',
+      flush && 'overflow-hidden p-0 max-[640px]:p-0 max-[520px]:p-0',
       className,
     ),
     'data-slot': 'card',

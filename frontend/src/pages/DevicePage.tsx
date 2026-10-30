@@ -1,5 +1,12 @@
 import { Icon } from '../components/Icon';
 import { Badge } from '../components/ui/Badge';
+import {
+  Card,
+  CardAction,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card';
 import { useDashboard } from '../app/providers/DashboardProvider';
 import { DEVICE_STATUS_LABELS } from '../lib/constants';
 import { formatClock, formatDuration } from '../lib/format';
@@ -57,14 +64,18 @@ export function DevicePage() {
       </div>
 
       <div className="grid-2">
-        <article className="card" aria-labelledby="device-info-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="device-info-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Phần cứng</p>
-              <h2 id="device-info-title">Thông tin thiết bị</h2>
+              <CardTitle render={<h2 />} id="device-info-title">
+                Thông tin thiết bị
+              </CardTitle>
             </div>
-            <Badge tone={tone} label={label} icon={badgeIcon} />
-          </header>
+            <CardAction>
+              <Badge tone={tone} label={label} icon={badgeIcon} />
+            </CardAction>
+          </CardHeader>
 
           <dl className="detail-list">
             <div>
@@ -112,7 +123,7 @@ export function DevicePage() {
             <p>{device?.error}</p>
           </div>
 
-          <footer className="card-foot">
+          <CardFooter>
             <button
               className={`btn btn-secondary${reconnecting ? ' is-loading' : ''}`}
               type="button"
@@ -133,16 +144,18 @@ export function DevicePage() {
             >
               Khởi động lại daemon
             </button>
-          </footer>
-        </article>
+          </CardFooter>
+        </Card>
 
-        <article className="card" aria-labelledby="setup-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="setup-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Thiết lập</p>
-              <h2 id="setup-title">Chuẩn bị một lần</h2>
+              <CardTitle render={<h2 />} id="setup-title">
+                Chuẩn bị một lần
+              </CardTitle>
             </div>
-          </header>
+          </CardHeader>
 
           <ol className="checklist">
             <li>
@@ -193,16 +206,18 @@ export function DevicePage() {
               tải có thể bị gián đoạn.
             </p>
           </div>
-        </article>
+        </Card>
       </div>
 
-      <article className="card" aria-labelledby="troubleshoot-title">
-        <header className="card-head">
+      <Card render={<article />} aria-labelledby="troubleshoot-title">
+        <CardHeader>
           <div>
             <p className="eyebrow">ADB</p>
-            <h2 id="troubleshoot-title">Xử lý sự cố nhanh</h2>
+            <CardTitle render={<h2 />} id="troubleshoot-title">
+              Xử lý sự cố nhanh
+            </CardTitle>
           </div>
-        </header>
+        </CardHeader>
         <div className="grid-3 text-grid">
           <div>
             <h3>Không thấy thiết bị</h3>
@@ -226,7 +241,7 @@ export function DevicePage() {
             </p>
           </div>
         </div>
-      </article>
+      </Card>
     </section>
   );
 }

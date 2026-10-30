@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { LogList } from '../components/data/LogList';
+import { Card } from '../components/ui/card';
 import {
   Empty,
   EmptyDescription,
@@ -109,7 +110,7 @@ export function LogsPage() {
         </div>
       </div>
 
-      <article className="card card-flush" aria-labelledby="log-console-title">
+      <Card render={<article />} flush aria-labelledby="log-console-title">
         <h2 className="visually-hidden" id="log-console-title">
           Nhật ký hoạt động chi tiết
         </h2>
@@ -136,7 +137,7 @@ export function LogsPage() {
             </Empty>
           ) : null}
         </div>
-      </article>
+      </Card>
     </section>
   );
 }
