@@ -65,7 +65,7 @@ export const DEFAULT_SETTINGS: Settings = {
 
 export const DEFAULT_SETTINGS_OPTIONS = {
   rotate_methods: ['airplane', 'data'],
-  min_interval_min: 5,
+  min_interval_min: 2,
   max_interval_min: 1440,
 };
 

@@ -165,7 +165,7 @@ Quy tắc:
 - Anatomy: label → input/select → help text → error text.
 - States: default, hover, focus-visible, invalid (`aria-invalid="true"` + viền danger), disabled.
 - Keyboard: label liên kết bằng `for`; lỗi được công bố qua `role="alert"`; focus chuyển về field lỗi khi submit.
-- Validation: chu kỳ **must** là số nguyên 5–1440; thông báo lỗi bằng tiếng Việt, nêu cách sửa.
+- Validation: chu kỳ **must** là số nguyên 2–1440; thông báo lỗi bằng tiếng Việt, nêu cách sửa.
 - Không dùng placeholder thay cho label.
 
 ### 3.10 Banner, toast, dialog
@@ -248,7 +248,7 @@ Các tiêu chí kiểm thử được:
 - [ ] Xoay IP thành công cập nhật IP, tiến trình, lịch sử, thống kê và toast.
 - [ ] Xoay IP thất bại hiển thị lỗi, giữ dữ liệu cũ và không treo button.
 - [ ] Bật/tắt tự động cập nhật badge, thời điểm tiếp theo và rollback khi lỗi.
-- [ ] Lưu cài đặt hợp lệ; chặn chu kỳ ngoài 5–1440; hiển thị lỗi cạnh field.
+- [ ] Lưu cài đặt hợp lệ; chặn chu kỳ ngoài 2–1440; hiển thị lỗi cạnh field.
 - [ ] Kết nối lại thiết bị và khởi động lại daemon có phản hồi trạng thái.
 - [ ] Xóa lịch sử/nhật ký mở dialog, Hủy không thay đổi dữ liệu.
 - [ ] Copy địa chỉ proxy và lệnh curl hoạt động, có toast xác nhận.

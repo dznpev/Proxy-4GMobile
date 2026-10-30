@@ -12,7 +12,7 @@ Máy tính ──► Dashboard + JSON API ────────────�
 
 - **Zero-app**: đẩy daemon Go có sẵn trong `backend/bin/` tới `/data/local/tmp/mini_proxy`, không cài ứng dụng lên điện thoại.
 - **Dashboard 5 trang**: Tổng quan, Thiết bị, Lịch sử IP, Nhật ký, Cài đặt.
-- **Xoay IP thủ công hoặc tự động** theo chu kỳ 5–1440 phút, hỗ trợ chế độ máy bay hoặc bật/tắt dữ liệu di động.
+- **Xoay IP thủ công hoặc tự động** theo chu kỳ 2–1440 phút, hỗ trợ chế độ máy bay hoặc bật/tắt dữ liệu di động.
 - **Theo dõi trực tiếp** IP công khai, nhà mạng, vị trí, độ trễ và tiến trình xoay theo từng bước.
 - **Lịch sử + nhật ký cục bộ** lưu trong thư mục `data/` (đã gitignore), tối đa 100 lần xoay và 500 dòng nhật ký.
 - **Tương thích API cũ**: giữ nguyên `GET /status` và `GET /rotate` cho tool automation hiện có.
@@ -163,7 +163,7 @@ curl http://127.0.0.1:8081/rotate
 
 ## Cài đặt và dữ liệu
 
-- `data/settings.json`: `auto_rotate_enabled`, `auto_rotate_interval_min` (5–1440), `rotate_method` (`airplane` hoặc `data`).
+- `data/settings.json`: `auto_rotate_enabled`, `auto_rotate_interval_min` (2–1440), `rotate_method` (`airplane` hoặc `data`).
 - `data/history.json`: tối đa 100 bản ghi, mới nhất trước.
 - Lịch tự động chỉ chạy khi thiết bị đang kết nối; sau mỗi lần xoay, lần tiếp theo được tính lại theo chu kỳ.
 

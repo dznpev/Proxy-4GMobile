@@ -15,9 +15,12 @@ import { Radio, RadioGroup } from '../components/ui/radio-group';
 import { Switch } from '../components/ui/switch';
 import { useDashboard } from '../app/providers/DashboardProvider';
 import { useToast } from '../app/providers/ToastProvider';
-import { DEFAULT_SETTINGS } from '../lib/constants';
+import { DEFAULT_SETTINGS, DEFAULT_SETTINGS_OPTIONS } from '../lib/constants';
 import { errorMessage } from '../lib/errors';
 import { formatClock } from '../lib/format';
+
+const MIN_INTERVAL = DEFAULT_SETTINGS_OPTIONS.min_interval_min;
+const MAX_INTERVAL = DEFAULT_SETTINGS_OPTIONS.max_interval_min;
 
 interface SettingsForm {
   auto_rotate_enabled: boolean;
@@ -89,10 +92,13 @@ export function SettingsPage() {
     const raw = form.auto_rotate_interval_min.trim();
     const interval = Number(raw);
     const valid =
-      raw !== '' && Number.isInteger(interval) && interval >= 5 && interval <= 1440;
+      raw !== '' &&
+      Number.isInteger(interval) &&
+      interval >= MIN_INTERVAL &&
+      interval <= MAX_INTERVAL;
 
     if (!valid) {
-      setIntervalError('Nhập số phút từ 5 đến 1440.');
+      setIntervalError(`Nhập số phút từ ${MIN_INTERVAL} đến ${MAX_INTERVAL}.`);
       intervalRef.current?.focus();
       return null;
     }
@@ -213,9 +219,9 @@ export function SettingsPage() {
                 ref={intervalRef}
                 id="setting-interval"
                 type="number"
-                min={5}
-                max={1440}
-                step={5}
+                min={MIN_INTERVAL}
+                max={MAX_INTERVAL}
+                step={1}
                 inputMode="numeric"
                 aria-describedby="setting-interval-help setting-interval-error"
                 aria-invalid={intervalError ? 'true' : undefined}
@@ -231,7 +237,7 @@ export function SettingsPage() {
                 onBlur={handleIntervalBlur}
               />
               <p className="help-text" id="setting-interval-help">
-                Từ 5 đến 1440 phút. Mặc định 30 phút.
+                Từ {MIN_INTERVAL} đến {MAX_INTERVAL} phút. Mặc định 30 phút.
               </p>
               <p
                 className="field-error"
