@@ -1,6 +1,13 @@
 import { useEffect, useRef, useState, type FormEvent } from 'react';
 import type { RotateMethod, Settings } from '../api/types';
 import { Badge } from '../components/ui/Badge';
+import {
+  Card,
+  CardAction,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card';
 import { useDashboard } from '../app/providers/DashboardProvider';
 import { useToast } from '../app/providers/ToastProvider';
 import { DEFAULT_SETTINGS } from '../lib/constants';
@@ -152,15 +159,22 @@ export function SettingsPage() {
         </div>
       </div>
 
-      <form id="settings-form" noValidate onSubmit={(event) => void handleSubmit(event)}>
-        <article className="card" aria-labelledby="settings-auto-title">
-          <header className="card-head">
+      <form id="settings-form" className="mb-4" noValidate onSubmit={(event) => void handleSubmit(event)}>
+        <Card render={<article />} aria-labelledby="settings-auto-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Lịch</p>
-              <h2 id="settings-auto-title">Tự động xoay IP</h2>
+              <CardTitle render={<h2 />} id="settings-auto-title">
+                Tự động xoay IP
+              </CardTitle>
             </div>
-            <Badge tone={badgeEnabled ? 'success' : 'neutral'} label={badgeEnabled ? 'Bật' : 'Tắt'} />
-          </header>
+            <CardAction>
+              <Badge
+                tone={badgeEnabled ? 'success' : 'neutral'}
+                label={badgeEnabled ? 'Bật' : 'Tắt'}
+              />
+            </CardAction>
+          </CardHeader>
 
           <div className="switch-row switch-row-bordered">
             <div>
@@ -268,7 +282,7 @@ export function SettingsPage() {
             <p>{error}</p>
           </div>
 
-          <footer className="card-foot">
+          <CardFooter>
             <button
               className={`btn btn-primary${saving ? ' is-loading' : ''}`}
               type="submit"
@@ -288,18 +302,20 @@ export function SettingsPage() {
             <span className="meta-text" role="status">
               {dirty ? 'Chưa lưu thay đổi' : savedText}
             </span>
-          </footer>
-        </article>
+          </CardFooter>
+        </Card>
       </form>
 
       <div className="grid-2">
-        <article className="card" aria-labelledby="api-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="api-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Tích hợp</p>
-              <h2 id="api-title">API cục bộ</h2>
+              <CardTitle render={<h2 />} id="api-title">
+                API cục bộ
+              </CardTitle>
             </div>
-          </header>
+          </CardHeader>
           <dl className="endpoint-list">
             <div>
               <dt>
@@ -329,16 +345,20 @@ export function SettingsPage() {
           <p className="meta-text">
             API chỉ lắng nghe trên loopback và không yêu cầu xác thực.
           </p>
-        </article>
+        </Card>
 
-        <article className="card" aria-labelledby="about-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="about-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Hệ thống</p>
-              <h2 id="about-title">Về ứng dụng</h2>
+              <CardTitle render={<h2 />} id="about-title">
+                Về ứng dụng
+              </CardTitle>
             </div>
-            <Badge tone="neutral" label="Demo" hidden={!app?.demo} />
-          </header>
+            <CardAction>
+              <Badge tone="neutral" label="Demo" hidden={!app?.demo} />
+            </CardAction>
+          </CardHeader>
           <dl className="detail-list detail-list-compact">
             <div>
               <dt>Phiên bản</dt>
@@ -360,7 +380,7 @@ export function SettingsPage() {
           <p className="meta-text">
             Zero-app: daemon được đẩy tới <code>/data/local/tmp</code>, không cài APK.
           </p>
-        </article>
+        </Card>
       </div>
     </section>
   );
