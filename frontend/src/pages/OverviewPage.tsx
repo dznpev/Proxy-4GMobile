@@ -3,6 +3,21 @@ import { Link } from 'react-router-dom';
 import type { RotationInfo, Tone } from '../api/types';
 import { Icon } from '../components/Icon';
 import { Badge } from '../components/ui/Badge';
+import {
+  Card,
+  CardAction,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '../components/ui/card';
+import {
+  Table,
+  TableBody,
+  TableCaption,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '../components/ui/table';
 import { Progress } from '../components/ui/progress';
 import { HistoryRows } from '../components/data/HistoryRows';
 import { LogList } from '../components/data/LogList';
@@ -279,14 +294,26 @@ export function OverviewPage() {
       </div>
 
       <div className="hero-grid">
-        <article className="card status-card" aria-labelledby="session-title">
-          <header className="card-head">
+        <Card
+          render={<article />}
+          className="status-card"
+          aria-labelledby="session-title"
+        >
+          <CardHeader>
             <div>
               <p className="eyebrow">Kết nối</p>
-              <h2 id="session-title">Phiên proxy</h2>
+              <CardTitle render={<h2 />} id="session-title">
+                Phiên proxy
+              </CardTitle>
             </div>
-            <Badge tone={session.tone} label={session.label} icon={session.icon} />
-          </header>
+            <CardAction>
+              <Badge
+                tone={session.tone}
+                label={session.label}
+                icon={session.icon}
+              />
+            </CardAction>
+          </CardHeader>
 
           <div className="endpoint-row">
             <div className="endpoint-copy">
@@ -323,7 +350,7 @@ export function OverviewPage() {
             </div>
           </dl>
 
-          <footer className="card-foot">
+          <CardFooter>
             <span className="meta-text">{checked}</span>
             <button
               className={`btn btn-ghost btn-sm${checking ? ' is-loading' : ''}`}
@@ -343,25 +370,30 @@ export function OverviewPage() {
               <Icon name="wifi" />
               <span>Kiểm tra lại</span>
             </button>
-          </footer>
-        </article>
+          </CardFooter>
+        </Card>
 
-        <article
-          className={`card rotate-card${rotationRunning ? ' is-running' : ''}${
+        <Card
+          render={<article />}
+          className={`rotate-card${rotationRunning ? ' is-running' : ''}${
             rotationSucceeded ? ' is-success' : ''
           }${rotationFailed && !rotationRunning ? ' is-error' : ''}`}
           aria-labelledby="rotate-title"
         >
-          <header className="card-head">
+          <CardHeader>
             <div>
               <p className="eyebrow">Đổi IP</p>
-              <h2 id="rotate-title">Xoay IP</h2>
+              <CardTitle render={<h2 />} id="rotate-title">
+                Xoay IP
+              </CardTitle>
             </div>
-            <Badge
-              tone={autoEnabled ? 'success' : 'neutral'}
-              label={autoEnabled ? 'Tự động bật' : 'Tự động tắt'}
-            />
-          </header>
+            <CardAction>
+              <Badge
+                tone={autoEnabled ? 'success' : 'neutral'}
+                label={autoEnabled ? 'Tự động bật' : 'Tự động tắt'}
+              />
+            </CardAction>
+          </CardHeader>
 
           <div className="rotate-summary">
             <div className="rotate-icon" aria-hidden="true">
@@ -394,7 +426,7 @@ export function OverviewPage() {
             {Math.round(progress)}%
           </Progress>
 
-          <footer className="card-foot">
+          <CardFooter>
             <span className="meta-text">{autoNextSummary}</span>
             <button
               className={`btn btn-primary${rotatePending ? ' is-loading' : ''}`}
@@ -407,36 +439,36 @@ export function OverviewPage() {
               <Icon name="refresh" />
               <span>Xoay IP ngay</span>
             </button>
-          </footer>
-        </article>
+          </CardFooter>
+        </Card>
       </div>
 
       <div className="stat-grid">
-        <article className="card stat-card">
+        <Card render={<article />} className="px-5 py-4">
           <div className="stat-head">
             <span className="stat-label">IP hiện tại</span>
             <Icon name="wifi" />
           </div>
           <p className="stat-value mono">{ip}</p>
           <p className="stat-hint">{ipHint}</p>
-        </article>
-        <article className="card stat-card">
+        </Card>
+        <Card render={<article />} className="px-5 py-4">
           <div className="stat-head">
             <span className="stat-label">Nhà mạng</span>
             <Icon name="signal" />
           </div>
           <p className="stat-value">{isp}</p>
           <p className="stat-hint">{ispHint}</p>
-        </article>
-        <article className="card stat-card">
+        </Card>
+        <Card render={<article />} className="px-5 py-4">
           <div className="stat-head">
             <span className="stat-label">Phiên hoạt động</span>
             <Icon name="clock" />
           </div>
           <p className="stat-value">{device?.since ? formatDuration(uptime) : '—'}</p>
           <p className="stat-hint">{uptimeHint}</p>
-        </article>
-        <article className="card stat-card">
+        </Card>
+        <Card render={<article />} className="px-5 py-4">
           <div className="stat-head">
             <span className="stat-label">Tỷ lệ xoay</span>
             <Icon name="check" />
@@ -445,20 +477,24 @@ export function OverviewPage() {
           <p className="stat-hint">
             {total ? `${success}/${total} lần thành công` : 'Chưa có dữ liệu'}
           </p>
-        </article>
+        </Card>
       </div>
 
       <div className="content-grid">
-        <article className="card" aria-labelledby="device-summary-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="device-summary-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Thiết bị</p>
-              <h2 id="device-summary-title">Android qua ADB</h2>
+              <CardTitle render={<h2 />} id="device-summary-title">
+                Android qua ADB
+              </CardTitle>
             </div>
-            <Link className="text-link" to="/device">
-              Chi tiết <Icon name="arrow-right" />
-            </Link>
-          </header>
+            <CardAction>
+              <Link className="text-link" to="/device">
+                Chi tiết <Icon name="arrow-right" />
+              </Link>
+            </CardAction>
+          </CardHeader>
 
           <div className="device-line">
             <div className="device-avatar" aria-hidden="true">
@@ -485,7 +521,7 @@ export function OverviewPage() {
             </div>
           </dl>
 
-          <footer className="card-foot">
+          <CardFooter>
             <button
               className={`btn btn-secondary btn-sm${reconnecting ? ' is-loading' : ''}`}
               type="button"
@@ -499,16 +535,18 @@ export function OverviewPage() {
             <Link className="text-link" to="/device">
               Xử lý sự cố
             </Link>
-          </footer>
-        </article>
+          </CardFooter>
+        </Card>
 
-        <article className="card" aria-labelledby="quickstart-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="quickstart-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Bắt đầu</p>
-              <h2 id="quickstart-title">Dùng proxy</h2>
+              <CardTitle render={<h2 />} id="quickstart-title">
+                Dùng proxy
+              </CardTitle>
             </div>
-          </header>
+          </CardHeader>
           <p className="meta-text">
             Trỏ công cụ của bạn vào proxy HTTP trên máy tính. Hỗ trợ HTTP và HTTPS qua CONNECT.
           </p>
@@ -535,19 +573,23 @@ export function OverviewPage() {
               API tương thích: <code>/rotate</code> và <code>/status</code>.
             </li>
           </ul>
-        </article>
+        </Card>
 
-        <article className="card" aria-labelledby="auto-summary-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="auto-summary-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Lịch</p>
-              <h2 id="auto-summary-title">Tự động xoay</h2>
+              <CardTitle render={<h2 />} id="auto-summary-title">
+                Tự động xoay
+              </CardTitle>
             </div>
-            <Badge
-              tone={autoEnabled ? 'success' : 'neutral'}
-              label={autoEnabled ? 'Bật' : 'Tắt'}
-            />
-          </header>
+            <CardAction>
+              <Badge
+                tone={autoEnabled ? 'success' : 'neutral'}
+                label={autoEnabled ? 'Bật' : 'Tắt'}
+              />
+            </CardAction>
+          </CardHeader>
 
           <div className="switch-row">
             <div>
@@ -584,61 +626,75 @@ export function OverviewPage() {
             </div>
           </dl>
 
-          <footer className="card-foot">
+          <CardFooter>
             <Link className="text-link" to="/settings">
               Mở cài đặt
             </Link>
-          </footer>
-        </article>
+          </CardFooter>
+        </Card>
       </div>
 
       <div className="split-grid">
-        <article className="card" aria-labelledby="recent-history-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="recent-history-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Lịch sử</p>
-              <h2 id="recent-history-title">Lần xoay gần đây</h2>
+              <CardTitle render={<h2 />} id="recent-history-title">
+                Lần xoay gần đây
+              </CardTitle>
             </div>
-            <Link className="text-link" to="/history">
-              Xem tất cả
-            </Link>
-          </header>
-          <div className="table-wrap" hidden={recentHistory.length === 0}>
-            <table className="data-table">
-              <caption className="visually-hidden">Năm lần xoay IP gần nhất</caption>
-              <thead>
-                <tr>
-                  <th scope="col">Thời gian</th>
-                  <th scope="col">IP mới</th>
-                  <th scope="col">Nhà mạng</th>
-                  <th scope="col">Trạng thái</th>
-                </tr>
-              </thead>
-              <tbody>
+            <CardAction>
+              <Link className="text-link" to="/history">
+                Xem tất cả
+              </Link>
+            </CardAction>
+          </CardHeader>
+          {/* The compact table drops the ISP column on small screens. */}
+          {recentHistory.length > 0 ? (
+            <Table className="max-[640px]:[&_th:nth-child(3)]:hidden max-[640px]:[&_td:nth-child(3)]:hidden">
+              <TableCaption className="visually-hidden">
+                Năm lần xoay IP gần nhất
+              </TableCaption>
+              <TableHeader>
+                <TableRow>
+                  <TableHead scope="col">Thời gian</TableHead>
+                  <TableHead scope="col">IP mới</TableHead>
+                  <TableHead scope="col">Nhà mạng</TableHead>
+                  <TableHead scope="col">Trạng thái</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
                 <HistoryRows items={recentHistory} compact />
-              </tbody>
-            </table>
-          </div>
-          <div className="empty-inline" hidden={recentHistory.length > 0}>
-            <p>Chưa có lần xoay IP nào.</p>
-          </div>
-        </article>
+              </TableBody>
+            </Table>
+          ) : (
+            <div className="empty-inline">
+              <p>Chưa có lần xoay IP nào.</p>
+            </div>
+          )}
+        </Card>
 
-        <article className="card" aria-labelledby="recent-logs-title">
-          <header className="card-head">
+        <Card render={<article />} aria-labelledby="recent-logs-title">
+          <CardHeader>
             <div>
               <p className="eyebrow">Hoạt động</p>
-              <h2 id="recent-logs-title">Nhật ký gần đây</h2>
+              <CardTitle render={<h2 />} id="recent-logs-title">
+                Nhật ký gần đây
+              </CardTitle>
             </div>
-            <Link className="text-link" to="/logs">
-              Xem tất cả
-            </Link>
-          </header>
+            <CardAction>
+              <Link className="text-link" to="/logs">
+                Xem tất cả
+              </Link>
+            </CardAction>
+          </CardHeader>
           <LogList items={recentLogs} compact ariaLabel="Nhật ký gần đây" />
-          <div className="empty-inline" hidden={recentLogs.length > 0}>
-            <p>Chưa có hoạt động nào.</p>
-          </div>
-        </article>
+          {recentLogs.length === 0 ? (
+            <div className="empty-inline">
+              <p>Chưa có hoạt động nào.</p>
+            </div>
+          ) : null}
+        </Card>
       </div>
     </section>
   );
