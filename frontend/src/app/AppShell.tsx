@@ -21,6 +21,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   const closeButtonRef = useRef<HTMLButtonElement | null>(null);
   const menuButtonRef = useRef<HTMLButtonElement | null>(null);
   const mainRef = useRef<HTMLElement | null>(null);
+  const restoreFocusRef = useRef(false);
   const firstRouteRef = useRef(true);
 
   useEffect(() => {
@@ -40,8 +41,8 @@ export function AppShell({ children }: { children: ReactNode }) {
     (restoreFocus = true) => {
       if (!sidebarOpen) return;
       const focusWasInside = sidebarRef.current?.contains(document.activeElement) ?? false;
+      restoreFocusRef.current = restoreFocus && focusWasInside;
       setSidebarOpen(false);
-      if (restoreFocus && focusWasInside) menuButtonRef.current?.focus();
     },
     [sidebarOpen],
   );
@@ -57,7 +58,15 @@ export function AppShell({ children }: { children: ReactNode }) {
   }, [closeSidebar, openSidebar, sidebarOpen]);
 
   useEffect(() => {
-    if (isMobile && sidebarOpen) closeButtonRef.current?.focus();
+    if (isMobile && sidebarOpen) {
+      const timer = window.setTimeout(() => closeButtonRef.current?.focus(), 50);
+      return () => window.clearTimeout(timer);
+    }
+    if (!sidebarOpen && restoreFocusRef.current) {
+      restoreFocusRef.current = false;
+      menuButtonRef.current?.focus();
+    }
+    return undefined;
   }, [isMobile, sidebarOpen]);
 
   useEffect(() => {
@@ -102,6 +111,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     }
     mainRef.current?.focus({ preventScroll: true });
     window.scrollTo({ top: 0, behavior: 'auto' });
+    restoreFocusRef.current = false;
     setSidebarOpen(false);
   }, [location.pathname]);
 
@@ -111,7 +121,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   return (
     <>
       <IconSprite />
-      <div className="app-shell">
+      <div className="grid min-h-dvh grid-cols-1 min-[1025px]:grid-cols-[236px_minmax(0,1fr)]">
         <Sidebar
           open={sidebarOpen}
           isMobile={isMobile}
@@ -121,24 +131,32 @@ export function AppShell({ children }: { children: ReactNode }) {
           closeButtonRef={closeButtonRef}
         />
 
-        <div
-          className="scrim"
-          id="sidebar-scrim"
-          hidden={!isMobile || !sidebarOpen}
-          onClick={() => closeSidebar()}
-        />
+        {isMobile && sidebarOpen ? (
+          <div
+            className="fixed inset-0 z-[35] bg-black/[0.42]"
+            id="sidebar-scrim"
+            aria-hidden="true"
+            onClick={() => closeSidebar()}
+          />
+        ) : null}
 
-        <div className="shell-main">
+        <div className="min-w-0" inert={isMobile && sidebarOpen}>
           <Topbar
             onMenuToggle={toggleSidebar}
             menuButtonRef={menuButtonRef}
             menuOpen={isMobile && sidebarOpen}
           />
 
-          <main id="main" ref={mainRef} tabIndex={-1} aria-busy={busy}>
+          <main
+            id="main"
+            ref={mainRef}
+            className="mx-auto w-full max-w-[1500px] px-8 pt-6 pb-10 max-[800px]:px-4 max-[800px]:pt-4 max-[800px]:pb-8 max-[520px]:px-2"
+            tabIndex={-1}
+            aria-busy={busy}
+          >
             <Banners />
             {children}
-            <footer className="app-footer">
+            <footer className="flex items-center justify-between gap-4 pt-5 text-xs text-muted-foreground max-[640px]:flex-col max-[640px]:items-start max-[640px]:gap-1">
               <span>4G Mobile Proxy · {version}</span>
               <span>Dữ liệu cục bộ · không gửi lên máy chủ</span>
             </footer>

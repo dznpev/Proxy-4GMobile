@@ -49,10 +49,10 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
         : '';
 
   return (
-    <header className="topbar">
+    <header className="sticky top-0 z-30 flex min-h-[76px] items-center gap-4 border-b border-border bg-[rgba(247,247,248,0.94)] px-8 py-3 backdrop-blur-[8px] max-[800px]:min-h-0 max-[800px]:flex-wrap max-[800px]:gap-2 max-[800px]:px-4 max-[800px]:py-2.5 max-[520px]:px-2">
       <Button
         ref={menuButtonRef}
-        className="menu-toggle min-[1025px]:hidden max-[1025px]:min-h-11 max-[1025px]:min-w-11"
+        className="min-[1025px]:hidden max-[1025px]:min-h-11 max-[1025px]:min-w-11"
         id="menu-toggle"
         type="button"
         variant="ghost"
@@ -65,18 +65,21 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
         <Icon name="menu" />
       </Button>
 
-      <div className="page-heading">
+      <div className="min-w-0 max-[800px]:flex-1">
         <p className="eyebrow" id="page-eyebrow">
           {meta.eyebrow}
         </p>
-        <h1 className="page-title" id="page-title">
+        <h1
+          className="mt-px text-3xl font-semibold tracking-[-0.025em] max-[640px]:tracking-[-0.02em]"
+          id="page-title"
+        >
           {meta.title}
         </h1>
       </div>
 
-      <div className="topbar-actions">
+      <div className="ml-auto flex shrink-0 items-center gap-2 max-[800px]:gap-1.5">
         <StatusPill
-          className="max-sm:hidden"
+          className="max-[640px]:hidden"
           tone={summary.tone}
           label={summary.label}
         />
@@ -91,7 +94,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           onClick={() => void refreshAll({ spinner: true })}
         >
           {refreshing ? null : <Icon name="refresh" />}
-          <span className="btn-label">Làm mới</span>
+          <span className="max-[640px]:hidden">Làm mới</span>
         </Button>
         <Button
           id="rotate-btn"
@@ -105,7 +108,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           onClick={() => void startRotation()}
         >
           {rotatePending ? null : <Icon name="refresh" />}
-          <span className="btn-label">Xoay IP</span>
+          <span className="max-[640px]:hidden">Xoay IP</span>
         </Button>
       </div>
     </header>
