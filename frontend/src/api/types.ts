@@ -22,6 +22,20 @@ export interface AppInfo {
   uptime_sec: number;
 }
 
+export type BatteryWarningLevel = 'normal' | 'warning' | 'danger';
+
+export interface BatteryInfo {
+  level: number | null;
+  temperature: number | null;
+  status: 'charging' | 'discharging' | 'not_charging' | 'full' | 'unknown' | string;
+  plugged: 'usb' | 'ac' | 'wireless' | 'none' | string;
+  health: 'good' | 'overheat' | 'dead' | 'over_voltage' | 'unspecified_failure' | 'cold' | string;
+  voltage_mv?: number | null;
+  warning_level: BatteryWarningLevel;
+  charging_disabled: boolean;
+  root_supported?: boolean;
+}
+
 export interface DeviceInfo {
   connected: boolean;
   serial: string | null;
@@ -29,12 +43,14 @@ export interface DeviceInfo {
   model: string | null;
   android: string | null;
   abi: string | null;
+  rooted?: boolean;
   daemon_running: boolean;
   forwarded: boolean;
   since: number | null;
   last_seen: number | null;
   last_attempt: number | null;
   error: string | null;
+  battery?: BatteryInfo | null;
 }
 
 export interface ProxyInfo {

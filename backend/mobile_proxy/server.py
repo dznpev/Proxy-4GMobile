@@ -71,7 +71,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         try:
             parsed = urlparse(self.path)
             path = unquote(parsed.path)
-            if path == "/":
+            if path in ("/", "/device", "/history", "/logs", "/settings"):
                 self._serve_index()
             elif path == "/favicon.svg":
                 self._serve_file(self.web_dir / "favicon.svg", "image/svg+xml")
@@ -135,6 +135,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             elif path == "/api/device/reconnect":
                 payload = self.service.reconnect_device()
                 self._json(202, {"ok": True, **payload})
+            elif path == "/api/device/battery/charge":
+                enabled = body.get("enabled", True)
+                payload = self.service.set_device_charging(bool(enabled))
+                self._json(200, payload)
             elif path == "/api/proxy/restart":
                 payload = self.service.restart_proxy()
                 self._json(202, {"ok": True, **payload})

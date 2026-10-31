@@ -6,6 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
+from backend.mobile_proxy.adb import parse_dumpsys_battery
 from backend.mobile_proxy.config import AppConfig
 from backend.mobile_proxy.service import MobileProxyService, NotConnectedError
 
@@ -112,6 +113,56 @@ class DemoServiceTests(unittest.TestCase):
             disconnected.reconnect_device()
         with self.assertRaises(NotConnectedError):
             disconnected.restart_proxy()
+        with self.assertRaises(NotConnectedError):
+            disconnected.set_device_charging(False)
+
+    def test_battery_monitoring_and_charge_control(self) -> None:
+        status = self.service.status()
+        battery = status["device"].get("battery")
+        self.assertIsNotNone(battery)
+        self.assertEqual(battery["level"], 82)
+        self.assertEqual(battery["temperature"], 37.5)
+        self.assertEqual(battery["warning_level"], "normal")
+        self.assertEqual(battery["plugged"], "usb")
+        self.assertFalse(battery["charging_disabled"])
+
+        # Test toggling charging off
+        result = self.service.set_device_charging(False)
+        self.assertTrue(result["ok"])
+        self.assertTrue(result["battery"]["charging_disabled"])
+
+        # Test toggling charging back on
+        result = self.service.set_device_charging(True)
+        self.assertTrue(result["ok"])
+        self.assertFalse(result["battery"]["charging_disabled"])
+
+    def test_parse_dumpsys_battery_output(self) -> None:
+        sample_output = """
+Current Battery Service state:
+  AC powered: false
+  USB powered: true
+  Wireless powered: false
+  Max charging current: 500000
+  Max charging voltage: 5000000
+  Charge counter: 2800000
+  status: 2
+  health: 2
+  present: true
+  level: 89
+  scale: 100
+  voltage: 4150
+  temperature: 412
+  technology: Li-ion
+        """.strip()
+
+        parsed = parse_dumpsys_battery(sample_output)
+        self.assertEqual(parsed["level"], 89)
+        self.assertEqual(parsed["temperature"], 41.2)
+        self.assertEqual(parsed["status"], "charging")
+        self.assertEqual(parsed["plugged"], "usb")
+        self.assertEqual(parsed["health"], "good")
+        self.assertEqual(parsed["voltage_mv"], 4150)
+        self.assertTrue(parsed["present"])
 
 
 if __name__ == "__main__":

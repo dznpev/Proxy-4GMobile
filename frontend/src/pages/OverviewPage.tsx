@@ -500,8 +500,36 @@ export function OverviewPage() {
             <div className="device-avatar" aria-hidden="true">
               <Icon name="phone" />
             </div>
-            <div>
-              <p className="device-name">{device?.model || 'Chưa phát hiện thiết bị'}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="device-name">{device?.model || 'Chưa phát hiện thiết bị'}</p>
+                {device?.battery && (
+                  <Badge
+                    size="sm"
+                    tone={
+                      device.battery.warning_level === 'danger'
+                        ? 'danger'
+                        : device.battery.warning_level === 'warning'
+                          ? 'warning'
+                          : 'neutral'
+                    }
+                    label={`${device.battery.temperature != null ? `${device.battery.temperature}°C` : '—'}${
+                      device.battery.warning_level === 'danger'
+                        ? ' Quá nhiệt'
+                        : device.battery.warning_level === 'warning'
+                          ? ' Ấm'
+                          : ''
+                    }`}
+                    icon={
+                      device.battery.warning_level === 'danger'
+                        ? 'flame'
+                        : device.battery.warning_level === 'warning'
+                          ? 'alert'
+                          : 'battery'
+                    }
+                  />
+                )}
+              </div>
               <p className="meta-text">{deviceSub}</p>
             </div>
           </div>
@@ -519,6 +547,35 @@ export function OverviewPage() {
               <dt>Kết nối</dt>
               <dd>{deviceConnectionLabel}</dd>
             </div>
+            {device?.connected && (
+              <div>
+                <dt>Quyền Root</dt>
+                <dd>
+                  <Badge
+                    size="sm"
+                    tone={device.rooted ? 'success' : 'neutral'}
+                    label={device.rooted ? 'Đã Root' : 'Chưa Root'}
+                  />
+                </dd>
+              </div>
+            )}
+            {device?.battery && (
+              <div>
+                <dt>Mức pin</dt>
+                <dd className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold">
+                    {device.battery.level != null ? `${device.battery.level}%` : '—'}
+                  </span>
+                  {device.battery.charging_disabled ? (
+                    <Badge size="sm" tone="warning" label="Đã ngắt sạc" icon="alert" />
+                  ) : device.battery.status === 'charging' ? (
+                    <Badge size="sm" tone="neutral" label="Đang sạc USB" icon="zap" />
+                  ) : device.battery.plugged === 'usb' ? (
+                    <Badge size="sm" tone="neutral" label="Cổng USB" icon="zap" />
+                  ) : null}
+                </dd>
+              </div>
+            )}
           </dl>
 
           <CardFooter>

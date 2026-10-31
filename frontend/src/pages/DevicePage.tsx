@@ -14,18 +14,57 @@ import { formatClock, formatDuration } from '../lib/format';
 import { deviceTone } from '../lib/status';
 
 export function DevicePage() {
-  const { status, now, reconnecting, restarting, reconnectDevice, restartProxy } =
-    useDashboard();
+  const {
+    status,
+    now,
+    reconnecting,
+    restarting,
+    togglingCharging,
+    reconnectDevice,
+    restartProxy,
+    setDeviceCharging,
+  } = useDashboard();
 
   const app = status?.app;
   const device = status?.device;
   const proxy = status?.proxy;
+  const battery = device?.battery;
   const rotationRunning = Boolean(status?.rotation?.running);
 
   const tone = deviceTone(device);
   const label = DEVICE_STATUS_LABELS[device?.status ?? ''] || 'Chưa kết nối';
   const badgeIcon =
     tone === 'success' ? 'check' : tone === 'info' ? 'refresh' : tone === 'danger' ? 'alert' : 'phone';
+
+  const batteryTone =
+    battery?.warning_level === 'danger'
+      ? 'danger'
+      : battery?.warning_level === 'warning'
+        ? 'warning'
+        : 'success';
+
+  const batteryStatusLabels: Record<string, string> = {
+    charging: 'Đang sạc',
+    discharging: 'Đang xả pin',
+    not_charging: 'Không sạc',
+    full: 'Pin đầy',
+    unknown: 'Không xác định',
+  };
+
+  const batteryPluggedLabels: Record<string, string> = {
+    usb: 'Cổng USB máy tính',
+    ac: 'Bộ sạc tường (AC)',
+    wireless: 'Sạc không dây',
+    none: 'Không cắm sạc',
+  };
+
+  const batteryHealthLabels: Record<string, string> = {
+    good: 'Tốt (Bình thường)',
+    overheat: 'Quá nhiệt',
+    dead: 'Pin hỏng',
+    over_voltage: 'Quá áp',
+    cold: 'Quá lạnh',
+  };
 
   let adbLabel = DEVICE_STATUS_LABELS[device?.status ?? ''] || 'Chưa kết nối';
   if (device?.status === 'ready') adbLabel = 'Đã kết nối · USB';
@@ -73,7 +112,14 @@ export function DevicePage() {
                 Thông tin thiết bị
               </CardTitle>
             </div>
-            <CardAction>
+            <CardAction className="flex items-center gap-1.5 flex-wrap">
+              {device?.connected && (
+                <Badge
+                  tone={device.rooted ? 'success' : 'neutral'}
+                  label={device.rooted ? 'Đã Root' : 'Chưa Root'}
+                  icon={device.rooted ? 'check' : undefined}
+                />
+              )}
               <Badge tone={tone} label={label} icon={badgeIcon} />
             </CardAction>
           </CardHeader>
@@ -94,6 +140,16 @@ export function DevicePage() {
             <div>
               <dt>Kiến trúc</dt>
               <dd>{device?.abi || '—'}</dd>
+            </div>
+            <div>
+              <dt>Quyền Root</dt>
+              <dd>
+                {device?.connected
+                  ? device.rooted
+                    ? 'Đã Root (Hỗ trợ ngắt sạc IC phần cứng)'
+                    : 'Chưa Root (Chỉ ngắt sạc mô phỏng ADB)'
+                  : '—'}
+              </dd>
             </div>
             <div>
               <dt>Trạng thái ADB</dt>
@@ -142,6 +198,130 @@ export function DevicePage() {
               onClick={() => void restartProxy()}
             >
               Khởi động lại daemon
+            </Button>
+          </CardFooter>
+        </Card>
+
+        <Card render={<article />} aria-labelledby="battery-info-title">
+          <CardHeader>
+            <div>
+              <p className="eyebrow">An toàn phần cứng</p>
+              <CardTitle render={<h2 />} id="battery-info-title">
+                Pin & Nhiệt độ
+              </CardTitle>
+            </div>
+            <CardAction>
+              <Badge
+                tone={battery ? batteryTone : 'neutral'}
+                icon={
+                  battery?.warning_level === 'danger'
+                    ? 'flame'
+                    : battery?.warning_level === 'warning'
+                      ? 'alert'
+                      : 'battery'
+                }
+              >
+                {battery?.temperature != null ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-semibold font-numeric">{battery.temperature}°C</span>
+                    <span className="opacity-40 font-normal">|</span>
+                    <span>
+                      {battery.warning_level === 'danger'
+                        ? 'Quá nhiệt'
+                        : battery.warning_level === 'warning'
+                          ? 'Cảnh báo ấm'
+                          : 'An toàn'}
+                    </span>
+                  </span>
+                ) : (
+                  <span>Chưa có thông tin</span>
+                )}
+              </Badge>
+            </CardAction>
+          </CardHeader>
+
+          <dl className="detail-list">
+            <div>
+              <dt>Mức pin</dt>
+              <dd className="font-semibold font-numeric">
+                {battery?.level != null ? `${battery.level}%` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Nhiệt độ pin</dt>
+              <dd className="font-semibold font-numeric">
+                {battery?.temperature != null ? `${battery.temperature}°C` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Trạng thái sạc</dt>
+              <dd>
+                {battery?.charging_disabled
+                  ? 'Đã ngắt sạc (Bảo vệ pin)'
+                  : battery?.status
+                    ? batteryStatusLabels[battery.status] || battery.status
+                    : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Nguồn cấp</dt>
+              <dd>{battery?.plugged ? batteryPluggedLabels[battery.plugged] || battery.plugged : '—'}</dd>
+            </div>
+            <div>
+              <dt>Sức khỏe pin</dt>
+              <dd>{battery?.health ? batteryHealthLabels[battery.health] || battery.health : '—'}</dd>
+            </div>
+            <div>
+              <dt>Điện áp</dt>
+              <dd className="font-numeric">
+                {battery?.voltage_mv ? `${(battery.voltage_mv / 1000).toFixed(2)} V` : '—'}
+              </dd>
+            </div>
+            <div>
+              <dt>Cơ chế ngắt sạc</dt>
+              <dd>
+                {device?.rooted
+                  ? 'IC phần cứng (Kernel sysfs)'
+                  : 'Mô phỏng phần mềm (ADB dumpsys)'}
+              </dd>
+            </div>
+            <div>
+              <dt>Bảo vệ quá nhiệt</dt>
+              <dd>
+                {battery?.warning_level === 'danger'
+                  ? 'Đang ngắt sạc bảo vệ (>45°C)'
+                  : 'Tự động ngắt khi >45°C'}
+              </dd>
+            </div>
+          </dl>
+
+          {battery?.warning_level === 'danger' && (
+            <div className="inline-alert inline-alert-danger" role="alert">
+              <strong>Nhiệt độ quá 45°C!</strong>
+              <p>
+                Pin điện thoại đang rất nóng. Nguy cơ phồng/chai pin nếu cắm phát 4G liên tục ở nhiệt độ này.
+                {battery.charging_disabled
+                  ? ' Đã tự động kích hoạt ngắt sạc.'
+                  : ' Hãy tạm ngắt sạc hoặc đặt máy trước quạt.'}
+              </p>
+            </div>
+          )}
+
+          {battery?.warning_level === 'warning' && (
+            <div className="inline-alert" role="alert">
+              <strong>Điện thoại đang ấm (&gt;40°C)</strong>
+              <p>Khuyến khích tháo ốp lưng, để máy nơi thoáng khí hoặc dùng quạt tản nhiệt mini.</p>
+            </div>
+          )}
+
+          <CardFooter>
+            <Button
+              variant="outline"
+              loading={togglingCharging}
+              disabled={!device?.connected || togglingCharging}
+              onClick={() => void setDeviceCharging(Boolean(battery?.charging_disabled))}
+            >
+              {battery?.charging_disabled ? 'Bật lại sạc pin' : 'Tạm ngắt sạc pin'}
             </Button>
           </CardFooter>
         </Card>
