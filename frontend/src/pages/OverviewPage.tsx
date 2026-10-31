@@ -561,12 +561,18 @@ export function OverviewPage() {
             )}
             {device?.battery && (
               <div>
-                <dt>Pin & Nhiệt độ</dt>
-                <dd>
-                  {device.battery.level != null ? `${device.battery.level}%` : '—'}
-                  {device.battery.temperature != null ? ` · ${device.battery.temperature}°C` : ''}
-                  {device.battery.plugged === 'usb' ? ' ⚡ USB' : ''}
-                  {device.battery.charging_disabled ? ' (Đã ngắt sạc)' : ''}
+                <dt>Mức pin</dt>
+                <dd className="flex items-center gap-1.5 flex-wrap">
+                  <span className="font-semibold">
+                    {device.battery.level != null ? `${device.battery.level}%` : '—'}
+                  </span>
+                  {device.battery.charging_disabled ? (
+                    <Badge size="sm" tone="warning" label="Đã ngắt sạc" />
+                  ) : device.battery.status === 'charging' ? (
+                    <Badge size="sm" tone="neutral" label="Đang sạc USB" />
+                  ) : device.battery.plugged === 'usb' ? (
+                    <Badge size="sm" tone="neutral" label="Cổng USB" />
+                  ) : null}
                 </dd>
               </div>
             )}
