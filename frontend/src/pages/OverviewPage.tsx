@@ -490,32 +490,6 @@ export function OverviewPage() {
               </CardTitle>
             </div>
             <CardAction>
-              {device?.battery && (
-                <Badge
-                  size="sm"
-                  tone={
-                    device.battery.warning_level === 'danger'
-                      ? 'danger'
-                      : device.battery.warning_level === 'warning'
-                        ? 'warning'
-                        : 'neutral'
-                  }
-                  label={`${device.battery.temperature != null ? `${device.battery.temperature}°C` : '—'}${
-                    device.battery.warning_level === 'danger'
-                      ? ' Quá nhiệt'
-                      : device.battery.warning_level === 'warning'
-                        ? ' Ấm'
-                        : ''
-                  }`}
-                  icon={
-                    device.battery.warning_level === 'danger'
-                      ? 'flame'
-                      : device.battery.warning_level === 'warning'
-                        ? 'alert'
-                        : 'battery'
-                  }
-                />
-              )}
               <Link className="text-link" to="/device">
                 Chi tiết <Icon name="arrow-right" />
               </Link>
@@ -526,8 +500,36 @@ export function OverviewPage() {
             <div className="device-avatar" aria-hidden="true">
               <Icon name="phone" />
             </div>
-            <div>
-              <p className="device-name">{device?.model || 'Chưa phát hiện thiết bị'}</p>
+            <div className="min-w-0 flex-1">
+              <div className="flex items-center gap-2 flex-wrap">
+                <p className="device-name">{device?.model || 'Chưa phát hiện thiết bị'}</p>
+                {device?.battery && (
+                  <Badge
+                    size="sm"
+                    tone={
+                      device.battery.warning_level === 'danger'
+                        ? 'danger'
+                        : device.battery.warning_level === 'warning'
+                          ? 'warning'
+                          : 'neutral'
+                    }
+                    label={`${device.battery.temperature != null ? `${device.battery.temperature}°C` : '—'}${
+                      device.battery.warning_level === 'danger'
+                        ? ' Quá nhiệt'
+                        : device.battery.warning_level === 'warning'
+                          ? ' Ấm'
+                          : ''
+                    }`}
+                    icon={
+                      device.battery.warning_level === 'danger'
+                        ? 'flame'
+                        : device.battery.warning_level === 'warning'
+                          ? 'alert'
+                          : 'battery'
+                    }
+                  />
+                )}
+              </div>
               <p className="meta-text">{deviceSub}</p>
             </div>
           </div>
