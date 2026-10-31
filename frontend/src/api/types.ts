@@ -43,6 +43,7 @@ export interface DeviceInfo {
   model: string | null;
   android: string | null;
   abi: string | null;
+  rooted?: boolean;
   daemon_running: boolean;
   forwarded: boolean;
   since: number | null;

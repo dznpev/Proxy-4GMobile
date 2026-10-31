@@ -545,6 +545,18 @@ export function OverviewPage() {
               <dt>Kết nối</dt>
               <dd>{deviceConnectionLabel}</dd>
             </div>
+            {device?.connected && (
+              <div>
+                <dt>Quyền Root</dt>
+                <dd>
+                  <Badge
+                    size="sm"
+                    tone={device.rooted ? 'success' : 'neutral'}
+                    label={device.rooted ? 'Đã Root' : 'Chưa Root'}
+                  />
+                </dd>
+              </div>
+            )}
             {device?.battery && (
               <div>
                 <dt>Pin & Nhiệt độ</dt>

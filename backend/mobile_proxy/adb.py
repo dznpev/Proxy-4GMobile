@@ -98,23 +98,29 @@ class AdbClient:
         """Control charging state via ADB dumpsys or kernel sysfs if rooted."""
         if enabled:
             self.shell(serial, "dumpsys battery reset", timeout=8)
-            # Restore kernel sysfs charging nodes if root available
+            # Restore kernel sysfs charging nodes across Qualcomm, MediaTek, Samsung, Pixel
             self.shell(
                 serial,
                 "su -c 'for f in /sys/class/power_supply/battery/charging_enabled "
-                "/sys/class/power_supply/battery/battery_charging_enabled; do "
-                "[ -f $f ] && echo 1 > $f; done' 2>/dev/null",
+                "/sys/class/power_supply/battery/battery_charging_enabled "
+                "/sys/devices/platform/charger/charging_enabled; do "
+                "[ -f $f ] && echo 1 > $f; done; "
+                "[ -f /sys/class/power_supply/battery/input_suspend ] && echo 0 > /sys/class/power_supply/battery/input_suspend; "
+                "[ -f /sys/class/power_supply/battery/batt_slate_mode ] && echo 0 > /sys/class/power_supply/battery/batt_slate_mode;' 2>/dev/null",
                 timeout=8,
             )
         else:
             self.shell(serial, "dumpsys battery set usb 0", timeout=8)
             self.shell(serial, "dumpsys battery set status 4", timeout=8)
-            # Also try sysfs if rooted
+            # Disable charging in kernel sysfs across Qualcomm, MediaTek, Samsung, Pixel
             self.shell(
                 serial,
                 "su -c 'for f in /sys/class/power_supply/battery/charging_enabled "
-                "/sys/class/power_supply/battery/battery_charging_enabled; do "
-                "[ -f $f ] && echo 0 > $f; done' 2>/dev/null",
+                "/sys/class/power_supply/battery/battery_charging_enabled "
+                "/sys/devices/platform/charger/charging_enabled; do "
+                "[ -f $f ] && echo 0 > $f; done; "
+                "[ -f /sys/class/power_supply/battery/input_suspend ] && echo 1 > /sys/class/power_supply/battery/input_suspend; "
+                "[ -f /sys/class/power_supply/battery/batt_slate_mode ] && echo 1 > /sys/class/power_supply/battery/batt_slate_mode;' 2>/dev/null",
                 timeout=8,
             )
         return True

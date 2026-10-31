@@ -100,6 +100,7 @@ class MobileProxyService:
             "model": None,
             "android": None,
             "abi": None,
+            "rooted": False,
             "daemon_running": False,
             "forwarded": False,
             "since": None,
@@ -498,13 +499,19 @@ class MobileProxyService:
                 self.adb.getprop(serial, "ro.product.cpu.abi").strip()
                 or "arm64-v8a"
             )
+            rooted = False
+            try:
+                rooted = bool(self.adb.is_rooted(serial))
+            except Exception:
+                rooted = False
+
             with self._state_lock:
                 self.device.update(
-                    {"model": model, "android": android, "abi": abi}
+                    {"model": model, "android": android, "abi": abi, "rooted": rooted}
                 )
             self.events.add(
                 "info",
-                f"Thiết bị: {model} · Android {android} · {abi}",
+                f"Thiết bị: {model} · Android {android} · {abi} · {'Đã Root' if rooted else 'Chưa Root'}",
                 source="adb",
             )
 
@@ -617,6 +624,7 @@ class MobileProxyService:
                     "forwarded": False,
                     "error": None,
                     "battery": None,
+                    "rooted": False,
                 }
             )
             self.proxy.update({"running": False, "forwarded": False})

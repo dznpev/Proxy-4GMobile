@@ -112,7 +112,14 @@ export function DevicePage() {
                 Thông tin thiết bị
               </CardTitle>
             </div>
-            <CardAction>
+            <CardAction className="flex items-center gap-1.5 flex-wrap">
+              {device?.connected && (
+                <Badge
+                  tone={device.rooted ? 'success' : 'neutral'}
+                  label={device.rooted ? 'Đã Root' : 'Chưa Root'}
+                  icon={device.rooted ? 'check' : undefined}
+                />
+              )}
               <Badge tone={tone} label={label} icon={badgeIcon} />
             </CardAction>
           </CardHeader>
@@ -133,6 +140,16 @@ export function DevicePage() {
             <div>
               <dt>Kiến trúc</dt>
               <dd>{device?.abi || '—'}</dd>
+            </div>
+            <div>
+              <dt>Quyền Root</dt>
+              <dd>
+                {device?.connected
+                  ? device.rooted
+                    ? 'Đã Root (Hỗ trợ ngắt sạc IC phần cứng)'
+                    : 'Chưa Root (Chỉ ngắt sạc mô phỏng ADB)'
+                  : '—'}
+              </dd>
             </div>
             <div>
               <dt>Trạng thái ADB</dt>
@@ -272,6 +289,14 @@ export function DevicePage() {
             <div>
               <dt>Điện áp</dt>
               <dd>{battery?.voltage_mv ? `${(battery.voltage_mv / 1000).toFixed(2)} V` : '—'}</dd>
+            </div>
+            <div>
+              <dt>Cơ chế ngắt sạc</dt>
+              <dd>
+                {device?.rooted
+                  ? 'IC phần cứng (Kernel sysfs)'
+                  : 'Mô phỏng phần mềm (ADB dumpsys)'}
+              </dd>
             </div>
           </dl>
 
