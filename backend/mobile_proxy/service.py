@@ -15,6 +15,8 @@ from .events import EventLog
 from .network import NetworkChecker, NetworkError, NetworkInfo
 from .storage import (
     MAX_HISTORY,
+    MAX_INTERVAL_MIN,
+    MIN_INTERVAL_MIN,
     ROTATE_METHODS,
     HistoryStore,
     SettingsStore,
@@ -274,8 +276,8 @@ class MobileProxyService:
             },
             "options": {
                 "rotate_methods": list(ROTATE_METHODS),
-                "min_interval_min": 5,
-                "max_interval_min": 1440,
+                "min_interval_min": MIN_INTERVAL_MIN,
+                "max_interval_min": MAX_INTERVAL_MIN,
             },
         }
 

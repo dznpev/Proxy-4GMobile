@@ -81,7 +81,7 @@ class DemoServiceTests(unittest.TestCase):
         self.assertIsNotNone(payload["auto_rotate"]["next_at"])
 
         with self.assertRaises(ValueError):
-            self.service.update_settings({"auto_rotate_interval_min": 2})
+            self.service.update_settings({"auto_rotate_interval_min": 1})
 
         stored = self.service._settings_store.load()  # noqa: SLF001 - persistence check
         self.assertEqual(stored["auto_rotate_interval_min"], 60)

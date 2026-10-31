@@ -34,13 +34,13 @@ class ValidateSettingsTests(unittest.TestCase):
         self.assertEqual(result["rotate_method"], "data")
 
     def test_interval_boundaries(self) -> None:
-        for value in (5, 1440):
+        for value in (2, 1440):
             result = validate_settings(
                 {"auto_rotate_interval_min": value}, DEFAULT_SETTINGS
             )
             self.assertEqual(result["auto_rotate_interval_min"], value)
 
-        for value in (4, 1441):
+        for value in (1, 1441):
             with self.assertRaises(ValueError):
                 validate_settings(
                     {"auto_rotate_interval_min": value}, DEFAULT_SETTINGS
