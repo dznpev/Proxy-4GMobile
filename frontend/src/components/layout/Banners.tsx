@@ -86,7 +86,39 @@ export function Banners() {
     );
   }
 
-  if (connection !== 'online' || !status || status.device.status === 'ready') {
+  if (connection !== 'online' || !status) {
+    return null;
+  }
+
+  if (status.device.battery?.warning_level === 'danger') {
+    return (
+      <Alert className="mb-3" id="thermal-banner" variant="error">
+        <Icon name="flame" />
+        <AlertTitle>Cảnh báo quá nhiệt pin: {status.device.battery.temperature}°C</AlertTitle>
+        <AlertDescription>
+          Nhiệt độ điện thoại vượt ngưỡng an toàn (45°C). Nguy cơ phồng và chai pin.
+          {status.device.battery.charging_disabled
+            ? ' Đã tự động ngắt sạc bảo vệ thiết bị.'
+            : ' Hãy rút sạc hoặc chuyển sang vị trí thoáng mát.'}
+        </AlertDescription>
+        <AlertAction>
+          <Link
+            className={buttonVariants({
+              size: 'sm',
+              variant: 'outline',
+              className: 'pointer-coarse:min-h-11',
+            })}
+            id="thermal-banner-link"
+            to="/device"
+          >
+            Quản lý pin
+          </Link>
+        </AlertAction>
+      </Alert>
+    );
+  }
+
+  if (status.device.status === 'ready') {
     return null;
   }
 

@@ -189,6 +189,21 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(set(legacy), {"connected", "ip"})
         self.assertTrue(legacy["connected"])
 
+    def test_battery_charge_control_endpoint(self) -> None:
+        status, payload = self.json_request(
+            "/api/device/battery/charge", method="POST", payload={"enabled": False}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertTrue(payload["battery"]["charging_disabled"])
+
+        status, payload = self.json_request(
+            "/api/device/battery/charge", method="POST", payload={"enabled": True}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertFalse(payload["battery"]["charging_disabled"])
+
     def test_unknown_api_returns_json_error(self) -> None:
         status, payload = self.json_request("/api/nope")
         self.assertEqual(status, 404)

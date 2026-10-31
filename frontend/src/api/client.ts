@@ -92,5 +92,11 @@ export const dashboardApi = {
   clearHistory: () => api<ActionResponse>('/api/history/clear', { method: 'POST', body: {} }),
   clearLogs: () => api<ActionResponse>('/api/logs/clear', { method: 'POST', body: {} }),
   reconnect: () => api<ActionResponse>('/api/device/reconnect', { method: 'POST', body: {} }),
+  setDeviceCharging: (enabled: boolean) =>
+    api<{ ok: true; battery?: import('./types').BatteryInfo }>('/api/device/battery/charge', {
+      method: 'POST',
+      body: { enabled },
+      timeout: 10_000,
+    }),
   restartProxy: () => api<ActionResponse>('/api/proxy/restart', { method: 'POST', body: {} }),
 };

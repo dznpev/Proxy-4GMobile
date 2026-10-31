@@ -28,6 +28,9 @@ class DemoBackend:
         self._forwarded = True
         self._rotate_pending = False
         self._started = time.time()
+        self._charging = True
+        self._battery_level = 82
+        self._battery_temperature = 37.5
 
     # --- ADB interface -------------------------------------------------
     def available(self) -> bool:
@@ -74,6 +77,24 @@ class DemoBackend:
     def remove_forward(self, serial: str, local_port: int) -> str:
         self._forwarded = False
         return ""
+
+    def battery_info(self, serial: str) -> dict:
+        return {
+            "level": self._battery_level,
+            "temperature": self._battery_temperature,
+            "status": "charging" if self._charging else "not_charging",
+            "plugged": "usb" if self._charging else "none",
+            "health": "good",
+            "voltage_mv": 4120,
+            "present": True,
+        }
+
+    def is_rooted(self, serial: str) -> bool:
+        return True
+
+    def set_charging(self, serial: str, enabled: bool) -> bool:
+        self._charging = enabled
+        return True
 
     # --- network checker interface ------------------------------------
     def check(self, proxy_port: int) -> NetworkInfo:

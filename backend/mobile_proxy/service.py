@@ -89,6 +89,9 @@ class MobileProxyService:
         self._last_health_check = 0.0
         self._adb_missing_logged = False
         self._unauthorized_logged = False
+        self._charging_disabled = False
+        self._overheat_warning_logged = False
+        self._overheat_critical_logged = False
 
         self.device: dict[str, Any] = {
             "connected": False,
@@ -103,6 +106,7 @@ class MobileProxyService:
             "last_seen": None,
             "last_attempt": None,
             "error": None,
+            "battery": None,
         }
         self.proxy: dict[str, Any] = {
             "running": False,
@@ -432,6 +436,8 @@ class MobileProxyService:
                     self._op_lock.release()
             return
 
+        self._update_battery(serial)
+
         if now - self._last_network_check > 60:
             with self._state_lock:
                 has_serial = bool(self.device["serial"])
@@ -528,6 +534,7 @@ class MobileProxyService:
                 self.device["status"] = "ready"
                 self.device["since"] = now
             self._last_health_check = time.time()
+            self._update_battery(serial)
             self._check_network(announce=True)
             self._schedule_next()
             self.events.add(
@@ -609,6 +616,7 @@ class MobileProxyService:
                     "daemon_running": False,
                     "forwarded": False,
                     "error": None,
+                    "battery": None,
                 }
             )
             self.proxy.update({"running": False, "forwarded": False})
@@ -625,6 +633,56 @@ class MobileProxyService:
                 "Đã ngắt kết nối thiết bị. Đang chờ cắm lại cáp USB...",
                 source="adb",
             )
+
+    def _update_battery(self, serial: str) -> dict[str, Any] | None:
+        try:
+            battery = self.adb.battery_info(serial)
+            if not battery or battery.get("level") is None:
+                return None
+
+            temp = battery.get("temperature")
+            warning_level = "normal"
+            if temp is not None:
+                if temp >= 45.0:
+                    warning_level = "danger"
+                    if not self._overheat_critical_logged:
+                        self.events.add(
+                            "error",
+                            f"Cảnh báo nguy hiểm: Nhiệt độ pin {temp}°C vượt ngưỡng 45°C! Đang ngắt sạc bảo vệ.",
+                            source="adb",
+                        )
+                        self._overheat_critical_logged = True
+                        try:
+                            self.adb.set_charging(serial, False)
+                            self._charging_disabled = True
+                        except Exception:
+                            pass
+                elif temp >= 40.0:
+                    warning_level = "warning"
+                    if not self._overheat_warning_logged:
+                        self.events.add(
+                            "warning",
+                            f"Cảnh báo: Nhiệt độ pin tăng cao ({temp}°C > 40°C). Hãy chú ý vị trí đặt máy thoáng mát.",
+                            source="adb",
+                        )
+                        self._overheat_warning_logged = True
+                else:
+                    if temp < 38.5:
+                        self._overheat_warning_logged = False
+                        self._overheat_critical_logged = False
+
+            battery["warning_level"] = warning_level
+            battery["charging_disabled"] = self._charging_disabled
+            try:
+                battery["root_supported"] = self.adb.is_rooted(serial)
+            except Exception:
+                battery["root_supported"] = False
+
+            with self._state_lock:
+                self.device["battery"] = battery
+            return battery
+        except Exception:
+            return None
 
     # ------------------------------------------------------------------
     # Network verification
@@ -1211,6 +1269,23 @@ class MobileProxyService:
             "reconnect-device",
         )
         return {"message": "Đang kết nối lại thiết bị."}
+
+    def set_device_charging(self, enabled: bool) -> dict[str, Any]:
+        with self._state_lock:
+            if not self.device["connected"] or not self.device["serial"]:
+                raise NotConnectedError("Chưa có thiết bị Android nào được kết nối.")
+            serial = self.device["serial"]
+
+        self.adb.set_charging(serial, enabled)
+        self._charging_disabled = not enabled
+        action = "Bật lại sạc pin" if enabled else "Ngắt sạc pin tạm thời"
+        self.events.add(
+            "info" if enabled else "warning",
+            f"{action} cho thiết bị ({serial}).",
+            source="adb",
+        )
+        battery = self._update_battery(serial)
+        return {"ok": True, "battery": battery or {}}
 
     def restart_proxy(self) -> dict[str, Any]:
         with self._state_lock:

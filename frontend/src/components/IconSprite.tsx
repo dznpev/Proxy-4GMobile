@@ -35,6 +35,46 @@ export function IconSprite() {
           strokeLinecap="round"
         />
       </symbol>
+      <symbol id="i-battery" viewBox="0 0 24 24">
+        <rect
+          x="2"
+          y="6"
+          width="17"
+          height="12"
+          rx="2.5"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+        />
+        <line
+          x1="22"
+          y1="10"
+          x2="22"
+          y2="14"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+        />
+      </symbol>
+      <symbol id="i-zap" viewBox="0 0 24 24">
+        <polygon
+          points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinejoin="round"
+        />
+      </symbol>
+      <symbol id="i-flame" viewBox="0 0 24 24">
+        <path
+          d="M8.5 14.5A3.5 3.5 0 0 0 12 18a3.5 3.5 0 0 0 3.5-3.5c0-2-1.5-3.5-2.5-5-.5 1-1.5 1.5-2 1.5-1 0-2.5-1-2.5-3C7 10 6 12 6 14a6 6 0 0 0 12 0c0-4-3-7.5-6-11-1 3-3.5 5.5-3.5 8.5Z"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth="1.7"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+        />
+      </symbol>
       <symbol id="i-history" viewBox="0 0 24 24">
         <path
           d="M3.5 12a8.5 8.5 0 1 0 2.6-6.1L3.5 8.5M3.5 4v4.5H8M12 7.5V12l3 2"

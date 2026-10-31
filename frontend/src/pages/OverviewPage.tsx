@@ -490,6 +490,32 @@ export function OverviewPage() {
               </CardTitle>
             </div>
             <CardAction>
+              {device?.battery && (
+                <Badge
+                  size="sm"
+                  tone={
+                    device.battery.warning_level === 'danger'
+                      ? 'danger'
+                      : device.battery.warning_level === 'warning'
+                        ? 'warning'
+                        : 'neutral'
+                  }
+                  label={`${device.battery.temperature != null ? `${device.battery.temperature}°C` : '—'}${
+                    device.battery.warning_level === 'danger'
+                      ? ' Quá nhiệt'
+                      : device.battery.warning_level === 'warning'
+                        ? ' Ấm'
+                        : ''
+                  }`}
+                  icon={
+                    device.battery.warning_level === 'danger'
+                      ? 'flame'
+                      : device.battery.warning_level === 'warning'
+                        ? 'alert'
+                        : 'battery'
+                  }
+                />
+              )}
               <Link className="text-link" to="/device">
                 Chi tiết <Icon name="arrow-right" />
               </Link>
@@ -519,6 +545,17 @@ export function OverviewPage() {
               <dt>Kết nối</dt>
               <dd>{deviceConnectionLabel}</dd>
             </div>
+            {device?.battery && (
+              <div>
+                <dt>Pin & Nhiệt độ</dt>
+                <dd>
+                  {device.battery.level != null ? `${device.battery.level}%` : '—'}
+                  {device.battery.temperature != null ? ` · ${device.battery.temperature}°C` : ''}
+                  {device.battery.plugged === 'usb' ? ' ⚡ USB' : ''}
+                  {device.battery.charging_disabled ? ' (Đã ngắt sạc)' : ''}
+                </dd>
+              </div>
+            )}
           </dl>
 
           <CardFooter>

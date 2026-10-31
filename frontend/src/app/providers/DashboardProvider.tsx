@@ -53,6 +53,7 @@ interface DashboardContextValue {
   checking: boolean;
   reconnecting: boolean;
   restarting: boolean;
+  togglingCharging: boolean;
   clearingHistory: boolean;
   clearingLogs: boolean;
   autoPending: boolean;
@@ -60,6 +61,7 @@ interface DashboardContextValue {
   startRotation: () => Promise<void>;
   checkConnection: () => Promise<void>;
   reconnectDevice: () => Promise<void>;
+  setDeviceCharging: (enabled: boolean) => Promise<void>;
   restartProxy: () => Promise<void>;
   clearHistory: () => Promise<void>;
   clearLogs: () => Promise<void>;
@@ -92,6 +94,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [checking, setChecking] = useState(false);
   const [reconnecting, setReconnecting] = useState(false);
   const [restarting, setRestarting] = useState(false);
+  const [togglingCharging, setTogglingCharging] = useState(false);
   const [clearingHistory, setClearingHistory] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
   const [autoPending, setAutoPending] = useState(false);
@@ -450,6 +453,29 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     }
   }, [loadLogs, loadStatus, showToast]);
 
+  const setDeviceCharging = useCallback(
+    async (enabled: boolean) => {
+      setTogglingCharging(true);
+      try {
+        await dashboardApi.setDeviceCharging(enabled);
+        showToast(
+          enabled ? 'success' : 'warning',
+          enabled ? 'Đã bật lại sạc pin' : 'Đã ngắt sạc pin tạm thời',
+          enabled
+            ? 'Thiết bị tiếp tục nhận nguồn sạc.'
+            : 'Đang ngắt sạc để bảo vệ pin tránh quá nhiệt.',
+        );
+        await loadStatus();
+        void loadLogs({ silent: true });
+      } catch (error) {
+        showToast('error', 'Không điều khiển được sạc pin', errorMessage(error));
+      } finally {
+        setTogglingCharging(false);
+      }
+    },
+    [loadLogs, loadStatus, showToast],
+  );
+
   const restartProxy = useCallback(async () => {
     const confirmed = await confirmAction({
       title: 'Khởi động lại daemon proxy?',
@@ -667,6 +693,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       checking,
       reconnecting,
       restarting,
+      togglingCharging,
       clearingHistory,
       clearingLogs,
       autoPending,
@@ -674,6 +701,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       startRotation,
       checkConnection,
       reconnectDevice,
+      setDeviceCharging,
       restartProxy,
       clearHistory,
       clearLogs,
@@ -700,11 +728,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       rotatePending,
       rotationTrace,
       saveSettings,
+      setDeviceCharging,
       settings,
       startRotation,
       status,
       statusError,
       toggleAutoRotate,
+      togglingCharging,
       checkConnection,
       refreshAll,
     ],

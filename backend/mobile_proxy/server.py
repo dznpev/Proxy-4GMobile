@@ -135,6 +135,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             elif path == "/api/device/reconnect":
                 payload = self.service.reconnect_device()
                 self._json(202, {"ok": True, **payload})
+            elif path == "/api/device/battery/charge":
+                enabled = body.get("enabled", True)
+                payload = self.service.set_device_charging(bool(enabled))
+                self._json(200, payload)
             elif path == "/api/proxy/restart":
                 payload = self.service.restart_proxy()
                 self._json(202, {"ok": True, **payload})
