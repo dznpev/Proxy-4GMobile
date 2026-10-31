@@ -71,7 +71,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         try:
             parsed = urlparse(self.path)
             path = unquote(parsed.path)
-            if path == "/":
+            if path in ("/", "/device", "/history", "/logs", "/settings"):
                 self._serve_index()
             elif path == "/favicon.svg":
                 self._serve_file(self.web_dir / "favicon.svg", "image/svg+xml")
