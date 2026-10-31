@@ -43,6 +43,10 @@ class AppConfig:
         return self.data_dir / "history.json"
 
     @property
+    def usage_path(self) -> Path:
+        return self.data_dir / "usage.json"
+
+    @property
     def settings_path(self) -> Path:
         return self.data_dir / "settings.json"
 

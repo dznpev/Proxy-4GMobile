@@ -204,6 +204,13 @@ class DashboardServerTests(unittest.TestCase):
         self.assertTrue(payload["ok"])
         self.assertFalse(payload["battery"]["charging_disabled"])
 
+    def test_usage_reset_endpoint(self) -> None:
+        status, payload = self.json_request("/api/usage/reset", method="POST", payload={})
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertIn("data_usage", payload)
+        self.assertEqual(payload["data_usage"]["today_total_bytes"], 0)
+
     def test_unknown_api_returns_json_error(self) -> None:
         status, payload = self.json_request("/api/nope")
         self.assertEqual(status, 404)

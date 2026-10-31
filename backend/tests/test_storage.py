@@ -10,6 +10,7 @@ from pathlib import Path
 from backend.mobile_proxy.events import EventLog
 from backend.mobile_proxy.storage import (
     DEFAULT_SETTINGS,
+    DataUsageStore,
     HistoryStore,
     SettingsStore,
     validate_settings,
@@ -64,6 +65,7 @@ class StoreTests(unittest.TestCase):
                 "auto_rotate_enabled": True,
                 "auto_rotate_interval_min": 15,
                 "rotate_method": "data",
+                "daily_data_limit_gb": 4.0,
             }
             store.save(saved)
 
@@ -90,6 +92,28 @@ class StoreTests(unittest.TestCase):
             loaded = store.load()
             self.assertEqual([item["id"] for item in loaded], ["b", "a"])
             self.assertEqual([item["id"] for item in store.load()], ["b", "a"])
+
+    def test_data_usage_store_delta_and_reset(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "usage.json"
+            store = DataUsageStore(path)
+
+            initial = store.get_today(for_date="2026-10-31")
+            self.assertEqual(initial["total_bytes"], 0)
+
+            updated = store.record_delta(1024, 512, for_date="2026-10-31")
+            self.assertEqual(updated["rx_bytes"], 1024)
+            self.assertEqual(updated["tx_bytes"], 512)
+            self.assertEqual(updated["total_bytes"], 1536)
+
+            updated2 = store.record_delta(2048, 1024, for_date="2026-10-31")
+            self.assertEqual(updated2["rx_bytes"], 3072)
+            self.assertEqual(updated2["tx_bytes"], 1536)
+            self.assertEqual(updated2["total_bytes"], 4608)
+
+            reset = store.reset_today(for_date="2026-10-31")
+            self.assertEqual(reset["total_bytes"], 0)
+            self.assertEqual(store.get_today(for_date="2026-10-31")["total_bytes"], 0)
 
 
 class EventLogTests(unittest.TestCase):

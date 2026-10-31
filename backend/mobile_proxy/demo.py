@@ -96,6 +96,12 @@ class DemoBackend:
         self._charging = enabled
         return True
 
+    def network_traffic(self, serial: str) -> dict[str, int]:
+        elapsed = int(time.time() - self._started)
+        rx = 1_420_000_000 + elapsed * 1024 * 32
+        tx = 180_000_000 + elapsed * 1024 * 4
+        return {"rx_bytes": rx, "tx_bytes": tx, "total_bytes": rx + tx}
+
     # --- network checker interface ------------------------------------
     def check(self, proxy_port: int) -> NetworkInfo:
         if not self._daemon_running or not self._forwarded:

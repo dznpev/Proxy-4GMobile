@@ -125,6 +125,11 @@ class AdbClient:
             )
         return True
 
+    def network_traffic(self, serial: str) -> dict[str, int]:
+        """Read cellular network traffic from /proc/net/dev."""
+        output = self.shell(serial, "cat /proc/net/dev", timeout=8)
+        return parse_proc_net_dev(output)
+
 
 BATTERY_STATUS_MAP: dict[int, str] = {
     1: "unknown",
@@ -178,9 +183,10 @@ def parse_dumpsys_battery(output: str) -> dict[str, Any]:
                 pass
         elif key == "temperature":
             try:
-                # Android reports temperature in tenths of a degree Celsius (e.g. 385 -> 38.5)
                 raw_temp = float(val)
-                data["temperature"] = round(raw_temp / 10.0, 1) if raw_temp > 100 else round(raw_temp, 1)
+                data["temperature"] = (
+                    round(raw_temp / 10.0, 1) if raw_temp > 100 else round(raw_temp, 1)
+                )
             except ValueError:
                 pass
         elif key == "voltage":
@@ -218,3 +224,46 @@ def parse_dumpsys_battery(output: str) -> dict[str, Any]:
 
     return data
 
+
+def parse_proc_net_dev(output: str) -> dict[str, int]:
+    """Parse /proc/net/dev output and aggregate mobile cellular interfaces.
+
+    Filters for common Android mobile data interfaces (Qualcomm rmnet,
+    MediaTek ccmni, Samsung pdp/seth_w, generic wwan/radio), while skipping
+    virtual IPv4 clat translations (v4-rmnet*) to avoid double counting.
+    """
+    rx_total = 0
+    tx_total = 0
+
+    if not output:
+        return {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0}
+
+    mobile_prefixes = ("rmnet", "ccmni", "pdp", "wwan", "radio", "seth_w")
+
+    for raw_line in output.splitlines():
+        line = raw_line.strip()
+        if not line or ":" not in line:
+            continue
+        iface, _, stats_str = line.partition(":")
+        iface = iface.strip()
+
+        # Skip virtual IPv4 clat translation interfaces
+        if iface.startswith("v4-"):
+            continue
+
+        if any(iface.startswith(prefix) for prefix in mobile_prefixes):
+            parts = stats_str.split()
+            if len(parts) >= 9:
+                try:
+                    rx = int(parts[0])
+                    tx = int(parts[8])
+                    rx_total += rx
+                    tx_total += tx
+                except ValueError:
+                    continue
+
+    return {
+        "rx_bytes": rx_total,
+        "tx_bytes": tx_total,
+        "total_bytes": rx_total + tx_total,
+    }

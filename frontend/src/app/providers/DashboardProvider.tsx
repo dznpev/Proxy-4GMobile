@@ -56,6 +56,7 @@ interface DashboardContextValue {
   togglingCharging: boolean;
   clearingHistory: boolean;
   clearingLogs: boolean;
+  resettingUsage: boolean;
   autoPending: boolean;
   refreshAll: (options?: { spinner?: boolean }) => Promise<void>;
   startRotation: () => Promise<void>;
@@ -65,6 +66,7 @@ interface DashboardContextValue {
   restartProxy: () => Promise<void>;
   clearHistory: () => Promise<void>;
   clearLogs: () => Promise<void>;
+  resetUsage: () => Promise<void>;
   toggleAutoRotate: (next: boolean) => Promise<void>;
   saveSettings: (patch: Partial<Settings>) => Promise<ActionResponse>;
 }
@@ -97,6 +99,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
   const [togglingCharging, setTogglingCharging] = useState(false);
   const [clearingHistory, setClearingHistory] = useState(false);
   const [clearingLogs, setClearingLogs] = useState(false);
+  const [resettingUsage, setResettingUsage] = useState(false);
   const [autoPending, setAutoPending] = useState(false);
 
   const clockOffsetRef = useRef(0);
@@ -560,6 +563,29 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     }
   }, [confirmAction, loadLogs, showToast]);
 
+  const resetUsage = useCallback(async () => {
+    const confirmed = await confirmAction({
+      title: 'Đặt lại thống kê data 4G hôm nay?',
+      description:
+        'Bộ đếm lưu lượng nhận và gửi trong ngày sẽ được đặt về 0. Cài đặt giới hạn gói cước được giữ nguyên.',
+      confirmLabel: 'Đặt lại',
+      tone: 'danger',
+    });
+    if (!confirmed) return;
+
+    setResettingUsage(true);
+    try {
+      await dashboardApi.resetUsage();
+      await loadStatus();
+      showToast('success', 'Đã đặt lại dữ liệu 4G', 'Bộ đếm lưu lượng hôm nay đã được đặt lại.');
+      void loadLogs({ silent: true });
+    } catch (error) {
+      showToast('error', 'Không đặt lại được dung lượng', errorMessage(error));
+    } finally {
+      setResettingUsage(false);
+    }
+  }, [confirmAction, loadLogs, loadStatus, showToast]);
+
   const saveSettings = useCallback(async (patch: Partial<Settings>) => {
     const response = await dashboardApi.saveSettings(patch);
     const next: Settings = response.settings ?? {
@@ -696,6 +722,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       togglingCharging,
       clearingHistory,
       clearingLogs,
+      resettingUsage,
       autoPending,
       refreshAll,
       startRotation,
@@ -705,6 +732,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       restartProxy,
       clearHistory,
       clearLogs,
+      resetUsage,
       toggleAutoRotate,
       saveSettings,
     }),
@@ -723,6 +751,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       now,
       reconnectDevice,
       refreshing,
+      resetUsage,
+      resettingUsage,
       restartProxy,
       restarting,
       rotatePending,

@@ -6,7 +6,7 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from backend.mobile_proxy.adb import parse_dumpsys_battery
+from backend.mobile_proxy.adb import parse_dumpsys_battery, parse_proc_net_dev
 from backend.mobile_proxy.config import AppConfig
 from backend.mobile_proxy.service import MobileProxyService, NotConnectedError
 
@@ -163,6 +163,47 @@ Current Battery Service state:
         self.assertEqual(parsed["health"], "good")
         self.assertEqual(parsed["voltage_mv"], 4150)
         self.assertTrue(parsed["present"])
+
+    def test_data_usage_in_status_and_reset(self) -> None:
+        status = self.service.status()
+        self.assertIn("data_usage", status)
+        usage = status["data_usage"]
+        self.assertIn("today_rx_bytes", usage)
+        self.assertIn("today_tx_bytes", usage)
+        self.assertIn("today_total_bytes", usage)
+        self.assertIn("daily_limit_gb", usage)
+        self.assertIn("usage_percent", usage)
+        self.assertEqual(usage["daily_limit_gb"], 4.0)
+
+        # Record some usage
+        self.service._usage_store.record_delta(1024 * 1024, 512 * 1024)
+        status_after = self.service.status()
+        self.assertGreater(status_after["data_usage"]["today_total_bytes"], 0)
+
+        # Reset usage
+        reset_res = self.service.reset_today_usage()
+        self.assertTrue(reset_res["ok"])
+        self.assertEqual(reset_res["data_usage"]["today_total_bytes"], 0)
+        status_reset = self.service.status()
+        self.assertEqual(status_reset["data_usage"]["today_total_bytes"], 0)
+
+    def test_parse_proc_net_dev(self) -> None:
+        sample_proc = """
+Inter-|   Receive                                                |  Transmit
+ face |bytes    packets errs drop fifo frame compressed multicast|bytes    packets errs drop fifo colls carrier compressed
+    lo: 1234567      120    0    0    0     0          0         0  1234567      120    0    0    0     0       0          0
+ wlan0: 9999999      500    0    0    0     0          0         0  8888888      400    0    0    0     0       0          0
+rmnet_data0: 10485760 1000    0    0    0     0          0         0  2097152      500    0    0    0     0       0          0
+v4-rmnet_data0: 5242880  500    0    0    0     0          0         0  1048576      250    0    0    0     0       0          0
+ccmni0: 1048576  100    0    0    0     0          0         0   524288       50    0    0    0     0       0          0
+        """.strip()
+
+        parsed = parse_proc_net_dev(sample_proc)
+        # Should sum rmnet_data0 (10485760 rx, 2097152 tx) + ccmni0 (1048576 rx, 524288 tx)
+        # Should skip lo, wlan0, and v4-rmnet_data0
+        self.assertEqual(parsed["rx_bytes"], 10485760 + 1048576)
+        self.assertEqual(parsed["tx_bytes"], 2097152 + 524288)
+        self.assertEqual(parsed["total_bytes"], (10485760 + 1048576) + (2097152 + 524288))
 
 
 if __name__ == "__main__":
