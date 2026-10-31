@@ -98,3 +98,12 @@ export function formatLocation(network: {
 export function formatEndpoint(url: string | null | undefined): string {
   return url || '—';
 }
+
+export function formatBytes(bytes: number | null | undefined): string {
+  if (bytes == null || Number.isNaN(Number(bytes)) || bytes === 0) return '0 B';
+  const val = Number(bytes);
+  if (val < 1024) return `${Math.round(val)} B`;
+  if (val < 1024 * 1024) return `${(val / 1024).toFixed(1)} KB`;
+  if (val < 1024 * 1024 * 1024) return `${(val / (1024 * 1024)).toFixed(1)} MB`;
+  return `${(val / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+}

@@ -105,6 +105,18 @@ export interface Settings {
   auto_rotate_enabled: boolean;
   auto_rotate_interval_min: number;
   rotate_method: RotateMethod;
+  daily_data_limit_gb: number;
+}
+
+export interface DataUsageInfo {
+  today_rx_bytes: number;
+  today_tx_bytes: number;
+  today_total_bytes: number;
+  daily_limit_gb: number;
+  daily_limit_bytes: number;
+  usage_percent: number;
+  warning: boolean;
+  exceeded: boolean;
 }
 
 export interface AutoRotateInfo {
@@ -143,6 +155,7 @@ export interface StatusResponse {
   device: DeviceInfo;
   proxy: ProxyInfo;
   network: NetworkInfo;
+  data_usage: DataUsageInfo;
   rotation: RotationInfo;
   auto_rotate: AutoRotateInfo;
   settings: Settings;

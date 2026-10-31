@@ -132,6 +132,9 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             elif path == "/api/logs/clear":
                 payload = self.service.clear_logs()
                 self._json(200, {"ok": True, **payload})
+            elif path == "/api/usage/reset":
+                payload = self.service.reset_today_usage()
+                self._json(200, {"ok": True, **payload})
             elif path == "/api/device/reconnect":
                 payload = self.service.reconnect_device()
                 self._json(202, {"ok": True, **payload})

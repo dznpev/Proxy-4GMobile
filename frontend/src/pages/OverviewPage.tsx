@@ -30,6 +30,7 @@ import {
   formatClock,
   formatCountdown,
   formatDuration,
+  formatBytes,
   formatLatency,
   formatLocation,
   formatRelative,
@@ -111,6 +112,7 @@ export function OverviewPage() {
   const device = status?.device;
   const proxy = status?.proxy;
   const network = status?.network;
+  const dataUsage = status?.data_usage;
   const rotation = status?.rotation;
   const stats = status?.stats;
   const auto = status?.auto_rotate;
@@ -480,7 +482,7 @@ export function OverviewPage() {
         </Card>
       </div>
 
-      <div className="content-grid">
+      <div className="grid-2">
         <Card render={<article />} aria-labelledby="device-summary-title">
           <CardHeader>
             <div>
@@ -595,41 +597,84 @@ export function OverviewPage() {
           </CardFooter>
         </Card>
 
-        <Card render={<article />} aria-labelledby="quickstart-title">
+        <Card render={<article />} aria-labelledby="data-usage-summary-title">
           <CardHeader>
             <div>
-              <p className="eyebrow">Bắt đầu</p>
-              <CardTitle render={<h2 />} id="quickstart-title">
-                Dùng proxy
+              <p className="eyebrow">Dữ liệu di động</p>
+              <CardTitle render={<h2 />} id="data-usage-summary-title">
+                Data 4G hôm nay
               </CardTitle>
             </div>
+            <CardAction>
+              {dataUsage && (
+                <Badge
+                  tone={dataUsage.exceeded ? 'danger' : dataUsage.warning ? 'warning' : 'success'}
+                  label={
+                    dataUsage.exceeded
+                      ? 'Hết tốc độ cao'
+                      : dataUsage.warning
+                        ? 'Sắp hết'
+                        : `${dataUsage.usage_percent}%`
+                  }
+                  icon={dataUsage.exceeded || dataUsage.warning ? 'alert' : 'signal'}
+                />
+              )}
+            </CardAction>
           </CardHeader>
-          <p className="meta-text">
-            Trỏ công cụ của bạn vào proxy HTTP trên máy tính. Hỗ trợ HTTP và HTTPS qua CONNECT.
-          </p>
-          <div className="code-block">
-            <code>curl -x http://127.0.0.1:8080 https://api.ipify.org</code>
-            <button
-              className="icon-btn"
-              type="button"
-              aria-label="Sao chép lệnh curl"
-              title="Sao chép lệnh"
-              onClick={() =>
-                void copy('curl -x http://127.0.0.1:8080 https://api.ipify.org')
-              }
-            >
-              <Icon name="copy" />
-            </button>
+
+          <div className="flex flex-col gap-2">
+            <div className="flex items-baseline justify-between">
+              <div>
+                <span className="text-2xl font-bold font-numeric">
+                  {formatBytes(dataUsage?.today_total_bytes)}
+                </span>
+                <span className="text-xs text-(--text-secondary) ml-1.5">
+                  {dataUsage?.daily_limit_gb && dataUsage.daily_limit_gb > 0
+                    ? `/ ${dataUsage.daily_limit_gb} GB`
+                    : 'đã dùng'}
+                </span>
+              </div>
+              {dataUsage?.daily_limit_gb && dataUsage.daily_limit_gb > 0 ? (
+                <span className="text-xs font-semibold text-(--text-secondary)">
+                  {dataUsage.usage_percent}%
+                </span>
+              ) : null}
+            </div>
+
+            {dataUsage?.daily_limit_gb && dataUsage.daily_limit_gb > 0 ? (
+              <Progress
+                max={100}
+                value={Math.min(100, dataUsage.usage_percent)}
+                tone={dataUsage.exceeded ? 'error' : 'default'}
+                aria-label="Tiến độ sử dụng 4G"
+              />
+            ) : null}
           </div>
-          <ul className="bullet-list">
-            <li>
-              Proxy chỉ lắng nghe trên <code>127.0.0.1</code>.
-            </li>
-            <li>Xoay IP không làm gián đoạn dashboard.</li>
-            <li>
-              API tương thích: <code>/rotate</code> và <code>/status</code>.
-            </li>
-          </ul>
+
+          <dl className="compact-list mt-3">
+            <div>
+              <dt>Tải xuống (RX)</dt>
+              <dd className="font-semibold">{formatBytes(dataUsage?.today_rx_bytes)}</dd>
+            </div>
+            <div>
+              <dt>Tải lên (TX)</dt>
+              <dd className="font-semibold">{formatBytes(dataUsage?.today_tx_bytes)}</dd>
+            </div>
+            <div>
+              <dt>Giới hạn cước</dt>
+              <dd>
+                {dataUsage?.daily_limit_gb && dataUsage.daily_limit_gb > 0
+                  ? `${dataUsage.daily_limit_gb} GB / ngày`
+                  : 'Không giới hạn'}
+              </dd>
+            </div>
+          </dl>
+
+          <CardFooter>
+            <Link className="text-link" to="/settings">
+              Cài đặt gói cước
+            </Link>
+          </CardFooter>
         </Card>
 
         <Card render={<article />} aria-labelledby="auto-summary-title">
@@ -682,6 +727,43 @@ export function OverviewPage() {
               Mở cài đặt
             </Link>
           </CardFooter>
+        </Card>
+
+        <Card render={<article />} aria-labelledby="quickstart-title">
+          <CardHeader>
+            <div>
+              <p className="eyebrow">Bắt đầu</p>
+              <CardTitle render={<h2 />} id="quickstart-title">
+                Dùng proxy
+              </CardTitle>
+            </div>
+          </CardHeader>
+          <p className="meta-text">
+            Trỏ công cụ của bạn vào proxy HTTP trên máy tính. Hỗ trợ HTTP và HTTPS qua CONNECT.
+          </p>
+          <div className="code-block">
+            <code>curl -x http://127.0.0.1:8080 https://api.ipify.org</code>
+            <button
+              className="icon-btn"
+              type="button"
+              aria-label="Sao chép lệnh curl"
+              title="Sao chép lệnh"
+              onClick={() =>
+                void copy('curl -x http://127.0.0.1:8080 https://api.ipify.org')
+              }
+            >
+              <Icon name="copy" />
+            </button>
+          </div>
+          <ul className="bullet-list">
+            <li>
+              Proxy chỉ lắng nghe trên <code>127.0.0.1</code>.
+            </li>
+            <li>Xoay IP không làm gián đoạn dashboard.</li>
+            <li>
+              API tương thích: <code>/rotate</code> và <code>/status</code>.
+            </li>
+          </ul>
         </Card>
       </div>
 

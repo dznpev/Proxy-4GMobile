@@ -18,6 +18,7 @@ from .storage import (
     MAX_INTERVAL_MIN,
     MIN_INTERVAL_MIN,
     ROTATE_METHODS,
+    DataUsageStore,
     HistoryStore,
     SettingsStore,
     validate_settings,
@@ -79,6 +80,7 @@ class MobileProxyService:
 
         self._settings_store = SettingsStore(config.settings_path)
         self._history_store = HistoryStore(config.history_path)
+        self._usage_store = DataUsageStore(config.usage_path)
         self.settings = self._settings_store.load()
         self.history = self._history_store.load()
 
@@ -87,6 +89,10 @@ class MobileProxyService:
         self._next_rotate_at: float | None = None
         self._last_network_check = 0.0
         self._last_health_check = 0.0
+        self._last_traffic_rx: int | None = None
+        self._last_traffic_tx: int | None = None
+        self._usage_warning_logged = False
+        self._usage_limit_logged = False
         self._adb_missing_logged = False
         self._unauthorized_logged = False
         self._charging_disabled = False
@@ -254,6 +260,7 @@ class MobileProxyService:
             "device": device,
             "proxy": proxy,
             "network": network,
+            "data_usage": self._data_usage_payload(),
             "rotation": rotation,
             "auto_rotate": {
                 "enabled": bool(settings["auto_rotate_enabled"]),
@@ -438,6 +445,7 @@ class MobileProxyService:
             return
 
         self._update_battery(serial)
+        self._update_traffic(serial)
 
         if now - self._last_network_check > 60:
             with self._state_lock:
@@ -542,6 +550,7 @@ class MobileProxyService:
                 self.device["since"] = now
             self._last_health_check = time.time()
             self._update_battery(serial)
+            self._update_traffic(serial)
             self._check_network(announce=True)
             self._schedule_next()
             self.events.add(
@@ -1294,6 +1303,75 @@ class MobileProxyService:
         )
         battery = self._update_battery(serial)
         return {"ok": True, "battery": battery or {}}
+
+    def reset_today_usage(self) -> dict[str, Any]:
+        """Reset data usage counters for today."""
+        self._usage_store.reset_today()
+        self._last_traffic_rx = None
+        self._last_traffic_tx = None
+        self._usage_warning_logged = False
+        self._usage_limit_logged = False
+        self.events.add(
+            "info",
+            "Đã đặt lại thống kê dung lượng data 4G hôm nay.",
+            source="app",
+        )
+        return {"ok": True, "data_usage": self._data_usage_payload()}
+
+    def _update_traffic(self, serial: str) -> None:
+        try:
+            traffic = self.adb.network_traffic(serial)
+            rx = int(traffic.get("rx_bytes", 0))
+            tx = int(traffic.get("tx_bytes", 0))
+
+            if self._last_traffic_rx is not None and self._last_traffic_tx is not None:
+                rx_delta = rx - self._last_traffic_rx if rx >= self._last_traffic_rx else rx
+                tx_delta = tx - self._last_traffic_tx if tx >= self._last_traffic_tx else tx
+                if rx_delta > 0 or tx_delta > 0:
+                    self._usage_store.record_delta(rx_delta, tx_delta)
+
+            self._last_traffic_rx = rx
+            self._last_traffic_tx = tx
+        except Exception:
+            pass
+
+    def _data_usage_payload(self) -> dict[str, Any]:
+        today_usage = self._usage_store.get_today()
+        today_bytes = today_usage["total_bytes"]
+        limit_gb = float(self.settings.get("daily_data_limit_gb", 4.0))
+        limit_bytes = int(limit_gb * 1024 * 1024 * 1024) if limit_gb > 0 else 0
+        usage_percent = (
+            round((today_bytes / limit_bytes) * 100, 1) if limit_bytes > 0 else 0.0
+        )
+        warning = limit_bytes > 0 and usage_percent >= 80.0
+        exceeded = limit_bytes > 0 and today_bytes >= limit_bytes
+
+        if warning and not self._usage_warning_logged:
+            used_gb = round(today_bytes / (1024**3), 2)
+            self.events.add(
+                "warning",
+                f"Đã sử dụng {usage_percent}% ({used_gb} GB / {limit_gb} GB) dữ liệu 4G trong ngày.",
+                source="network",
+            )
+            self._usage_warning_logged = True
+        elif exceeded and not self._usage_limit_logged:
+            self.events.add(
+                "error",
+                f"Đã chạm trần giới hạn dữ liệu 4G trong ngày ({limit_gb} GB)! Chú ý phát sinh cước.",
+                source="network",
+            )
+            self._usage_limit_logged = True
+
+        return {
+            "today_rx_bytes": today_usage["rx_bytes"],
+            "today_tx_bytes": today_usage["tx_bytes"],
+            "today_total_bytes": today_bytes,
+            "daily_limit_gb": limit_gb,
+            "daily_limit_bytes": limit_bytes,
+            "usage_percent": usage_percent,
+            "warning": warning,
+            "exceeded": exceeded,
+        }
 
     def restart_proxy(self) -> dict[str, Any]:
         with self._state_lock:

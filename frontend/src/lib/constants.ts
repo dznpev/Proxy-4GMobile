@@ -61,6 +61,7 @@ export const DEFAULT_SETTINGS: Settings = {
   auto_rotate_enabled: false,
   auto_rotate_interval_min: 30,
   rotate_method: 'airplane',
+  daily_data_limit_gb: 4,
 };
 
 export const DEFAULT_SETTINGS_OPTIONS = {

@@ -91,6 +91,7 @@ export const dashboardApi = {
     api<ActionResponse>('/api/settings', { method: 'POST', body: patch, timeout: 15_000 }),
   clearHistory: () => api<ActionResponse>('/api/history/clear', { method: 'POST', body: {} }),
   clearLogs: () => api<ActionResponse>('/api/logs/clear', { method: 'POST', body: {} }),
+  resetUsage: () => api<ActionResponse>('/api/usage/reset', { method: 'POST', body: {} }),
   reconnect: () => api<ActionResponse>('/api/device/reconnect', { method: 'POST', body: {} }),
   setDeviceCharging: (enabled: boolean) =>
     api<{ ok: true; battery?: import('./types').BatteryInfo }>('/api/device/battery/charge', {

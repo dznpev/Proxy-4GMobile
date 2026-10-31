@@ -26,6 +26,7 @@ interface SettingsForm {
   auto_rotate_enabled: boolean;
   auto_rotate_interval_min: string;
   rotate_method: RotateMethod;
+  daily_data_limit_gb: string;
 }
 
 function toForm(settings: Settings): SettingsForm {
@@ -33,6 +34,7 @@ function toForm(settings: Settings): SettingsForm {
     auto_rotate_enabled: Boolean(settings.auto_rotate_enabled),
     auto_rotate_interval_min: String(settings.auto_rotate_interval_min ?? 30),
     rotate_method: settings.rotate_method || 'airplane',
+    daily_data_limit_gb: String(settings.daily_data_limit_gb ?? 4),
   };
 }
 
@@ -40,12 +42,13 @@ function isSameForm(left: SettingsForm, right: SettingsForm): boolean {
   return (
     left.auto_rotate_enabled === right.auto_rotate_enabled &&
     left.auto_rotate_interval_min === right.auto_rotate_interval_min &&
-    left.rotate_method === right.rotate_method
+    left.rotate_method === right.rotate_method &&
+    left.daily_data_limit_gb === right.daily_data_limit_gb
   );
 }
 
 export function SettingsPage() {
-  const { status, settings, now, saveSettings } = useDashboard();
+  const { status, settings, now, saveSettings, resettingUsage, resetUsage } = useDashboard();
   const { showToast } = useToast();
   const [form, setForm] = useState<SettingsForm>(() =>
     toForm(settings ?? DEFAULT_SETTINGS),
@@ -55,7 +58,9 @@ export function SettingsPage() {
   const [savedText, setSavedText] = useState('');
   const [error, setError] = useState('');
   const [intervalError, setIntervalError] = useState('');
+  const [limitError, setLimitError] = useState('');
   const intervalRef = useRef<HTMLInputElement | null>(null);
+  const limitRef = useRef<HTMLInputElement | null>(null);
 
   const app = status?.app;
   const version = app?.version || '2.0.0';
@@ -86,6 +91,7 @@ export function SettingsPage() {
     }
     setError('');
     setIntervalError('');
+    setLimitError('');
   };
 
   const readForm = (): Settings | null => {
@@ -103,11 +109,22 @@ export function SettingsPage() {
       return null;
     }
 
+    const rawLimit = form.daily_data_limit_gb.trim();
+    const limit = Number(rawLimit);
+    const limitValid = rawLimit !== '' && Number.isFinite(limit) && limit >= 0 && limit <= 1000;
+    if (!limitValid) {
+      setLimitError('Nhập số GB từ 0 đến 1000 (0 = không giới hạn).');
+      limitRef.current?.focus();
+      return null;
+    }
+
     setIntervalError('');
+    setLimitError('');
     return {
       auto_rotate_enabled: form.auto_rotate_enabled,
       auto_rotate_interval_min: interval,
       rotate_method: form.rotate_method,
+      daily_data_limit_gb: Math.round(limit * 100) / 100,
     };
   };
 
@@ -293,6 +310,37 @@ export function SettingsPage() {
                 </label>
               </RadioGroup>
             </fieldset>
+
+            <div className="field">
+              <Label htmlFor="setting-data-limit">Giới hạn dung lượng 4G mỗi ngày (GB)</Label>
+              <Input
+                ref={limitRef}
+                id="setting-data-limit"
+                type="number"
+                step="0.5"
+                min="0"
+                max="1000"
+                value={form.daily_data_limit_gb}
+                aria-invalid={limitError ? 'true' : undefined}
+                aria-describedby="setting-limit-help setting-limit-error"
+                onChange={(event) => {
+                  const value = event.target.value;
+                  setForm((current) => ({
+                    ...current,
+                    daily_data_limit_gb: value,
+                  }));
+                  markDirty();
+                }}
+              />
+              <p className="help-text" id="setting-limit-help">
+                Ví dụ: 4 (gói 4GB/ngày), 10 (gói 10GB/ngày). Đặt 0 nếu là gói không giới hạn dung lượng.
+              </p>
+              {limitError && (
+                <p className="error-text" id="setting-limit-error" role="alert">
+                  {limitError}
+                </p>
+              )}
+            </div>
           </div>
 
           <div className="inline-alert inline-alert-danger" role="alert" hidden={!error}>
@@ -318,6 +366,40 @@ export function SettingsPage() {
           </CardFooter>
         </Card>
       </form>
+
+      <Card render={<article />} aria-labelledby="settings-data-title" className="mb-4">
+        <CardHeader>
+          <div>
+            <p className="eyebrow">Dữ liệu di động</p>
+            <CardTitle render={<h2 />} id="settings-data-title">
+              Quản lý lưu lượng data 4G
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <div className="px-5 py-2">
+          <p className="meta-text mb-4">
+            Hệ thống đọc dung lượng truyền tải từ card mạng di động Android (/proc/net/dev) và tự động cộng dồn theo ngày.
+          </p>
+          <div className="flex items-center justify-between border-t border-border pt-4">
+            <div>
+              <strong className="block text-sm">Đặt lại bộ đếm hôm nay</strong>
+              <span className="text-xs text-(--text-secondary)">
+                Xóa số liệu nhận/gửi đã ghi nhận trong ngày về 0 (hữu ích khi bạn vừa gia hạn gói mới).
+              </span>
+            </div>
+            <Button
+              variant="outline"
+              size="sm"
+              type="button"
+              loading={resettingUsage}
+              disabled={resettingUsage}
+              onClick={() => void resetUsage()}
+            >
+              Đặt lại hôm nay
+            </Button>
+          </div>
+        </div>
+      </Card>
 
       <div className="grid-2">
         <Card render={<article />} aria-labelledby="api-title">

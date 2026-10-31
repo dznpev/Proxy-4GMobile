@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import threading
+from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -12,6 +13,7 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "auto_rotate_enabled": False,
     "auto_rotate_interval_min": 30,
     "rotate_method": "airplane",
+    "daily_data_limit_gb": 4.0,
 }
 
 ROTATE_METHODS = ("airplane", "data")
@@ -65,6 +67,16 @@ def validate_settings(payload: dict[str, Any], base: dict[str, Any]) -> dict[str
             raise ValueError("Phương thức xoay không hợp lệ.")
         candidate["rotate_method"] = method
 
+    if "daily_data_limit_gb" in payload:
+        raw_limit = payload["daily_data_limit_gb"]
+        try:
+            limit = float(raw_limit)
+        except (TypeError, ValueError) as exc:
+            raise ValueError("Giới hạn dung lượng phải là số GB.") from exc
+        if limit < 0 or limit > 1000:
+            raise ValueError("Giới hạn dung lượng phải từ 0 đến 1000 GB.")
+        candidate["daily_data_limit_gb"] = round(limit, 2)
+
     return candidate
 
 
@@ -109,3 +121,55 @@ class HistoryStore:
     def save(self, entries: list[dict[str, Any]]) -> None:
         with self._lock:
             _atomic_write(self.path, entries[: self.limit])
+
+
+class DataUsageStore:
+    """Persists daily cellular data usage stats (bytes rx, tx, total)."""
+
+    def __init__(self, path: Path) -> None:
+        self.path = path
+        self._lock = threading.Lock()
+
+    def load(self) -> dict[str, Any]:
+        data = _read_json(self.path, {})
+        if not isinstance(data, dict):
+            data = {}
+        if "dates" not in data or not isinstance(data["dates"], dict):
+            data["dates"] = {}
+        return data
+
+    def get_today(self, for_date: str | None = None) -> dict[str, int]:
+        today_key = for_date or date.today().isoformat()
+        with self._lock:
+            data = self.load()
+            entry = data.get("dates", {}).get(today_key, {})
+            return {
+                "rx_bytes": int(entry.get("rx_bytes", 0)),
+                "tx_bytes": int(entry.get("tx_bytes", 0)),
+                "total_bytes": int(entry.get("total_bytes", 0)),
+            }
+
+    def record_delta(
+        self, rx_delta: int, tx_delta: int, for_date: str | None = None
+    ) -> dict[str, int]:
+        today_key = for_date or date.today().isoformat()
+        with self._lock:
+            data = self.load()
+            dates = data.setdefault("dates", {})
+            entry = dates.setdefault(
+                today_key, {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0}
+            )
+            entry["rx_bytes"] = max(0, int(entry.get("rx_bytes", 0)) + rx_delta)
+            entry["tx_bytes"] = max(0, int(entry.get("tx_bytes", 0)) + tx_delta)
+            entry["total_bytes"] = entry["rx_bytes"] + entry["tx_bytes"]
+            _atomic_write(self.path, data)
+            return dict(entry)
+
+    def reset_today(self, for_date: str | None = None) -> dict[str, int]:
+        today_key = for_date or date.today().isoformat()
+        with self._lock:
+            data = self.load()
+            dates = data.setdefault("dates", {})
+            dates[today_key] = {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0}
+            _atomic_write(self.path, data)
+            return {"rx_bytes": 0, "tx_bytes": 0, "total_bytes": 0}
