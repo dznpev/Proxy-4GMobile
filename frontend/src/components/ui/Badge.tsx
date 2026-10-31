@@ -30,11 +30,12 @@ export const badgeVariants = cva(
 
 interface BadgeProps extends VariantProps<typeof badgeVariants> {
   tone: Tone;
-  label: string;
+  label?: string;
   icon?: string;
   id?: string;
   hidden?: boolean;
   className?: string;
+  children?: React.ReactNode;
 }
 
 export function Badge({
@@ -45,6 +46,7 @@ export function Badge({
   hidden,
   className,
   size,
+  children,
 }: BadgeProps): React.ReactElement {
   return (
     <span
@@ -54,7 +56,7 @@ export function Badge({
       id={id}
     >
       {icon ? <Icon name={icon} /> : null}
-      <span>{label}</span>
+      {children ?? (label ? <span>{label}</span> : null)}
     </span>
   );
 }

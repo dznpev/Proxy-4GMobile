@@ -213,15 +213,6 @@ export function DevicePage() {
             <CardAction>
               <Badge
                 tone={battery ? batteryTone : 'neutral'}
-                label={
-                  battery
-                    ? battery.warning_level === 'danger'
-                      ? `${battery.temperature != null ? `${battery.temperature}°C ` : ''}Quá nhiệt`
-                      : battery.warning_level === 'warning'
-                        ? `${battery.temperature != null ? `${battery.temperature}°C ` : ''}Ấm`
-                        : `${battery.temperature != null ? `${battery.temperature}°C ` : ''}An toàn`
-                    : 'Chưa có thông tin'
-                }
                 icon={
                   battery?.warning_level === 'danger'
                     ? 'flame'
@@ -229,43 +220,37 @@ export function DevicePage() {
                       ? 'alert'
                       : 'battery'
                 }
-              />
+              >
+                {battery?.temperature != null ? (
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-semibold font-numeric">{battery.temperature}°C</span>
+                    <span className="opacity-40 font-normal">|</span>
+                    <span>
+                      {battery.warning_level === 'danger'
+                        ? 'Quá nhiệt'
+                        : battery.warning_level === 'warning'
+                          ? 'Cảnh báo ấm'
+                          : 'An toàn'}
+                    </span>
+                  </span>
+                ) : (
+                  <span>Chưa có thông tin</span>
+                )}
+              </Badge>
             </CardAction>
           </CardHeader>
 
           <dl className="detail-list">
             <div>
               <dt>Mức pin</dt>
-              <dd>
-                {battery?.level != null ? (
-                  <span className="flex items-center gap-1.5 font-semibold">
-                    {battery.level}%
-                    {battery.status === 'charging' && <Icon name="zap" className="size-3.5" />}
-                  </span>
-                ) : (
-                  '—'
-                )}
+              <dd className="font-semibold font-numeric">
+                {battery?.level != null ? `${battery.level}%` : '—'}
               </dd>
             </div>
             <div>
               <dt>Nhiệt độ pin</dt>
-              <dd>
-                {battery?.temperature != null ? (
-                  <span
-                    className={
-                      battery.warning_level === 'danger'
-                        ? 'font-bold text-destructive'
-                        : battery.warning_level === 'warning'
-                          ? 'font-semibold text-warning'
-                          : 'font-semibold'
-                    }
-                  >
-                    {battery.temperature}°C
-                    {battery.temperature > 40 && ' (Cần chú ý tản nhiệt)'}
-                  </span>
-                ) : (
-                  '—'
-                )}
+              <dd className="font-semibold font-numeric">
+                {battery?.temperature != null ? `${battery.temperature}°C` : '—'}
               </dd>
             </div>
             <div>
@@ -288,7 +273,9 @@ export function DevicePage() {
             </div>
             <div>
               <dt>Điện áp</dt>
-              <dd>{battery?.voltage_mv ? `${(battery.voltage_mv / 1000).toFixed(2)} V` : '—'}</dd>
+              <dd className="font-numeric">
+                {battery?.voltage_mv ? `${(battery.voltage_mv / 1000).toFixed(2)} V` : '—'}
+              </dd>
             </div>
             <div>
               <dt>Cơ chế ngắt sạc</dt>
@@ -296,6 +283,14 @@ export function DevicePage() {
                 {device?.rooted
                   ? 'IC phần cứng (Kernel sysfs)'
                   : 'Mô phỏng phần mềm (ADB dumpsys)'}
+              </dd>
+            </div>
+            <div>
+              <dt>Bảo vệ quá nhiệt</dt>
+              <dd>
+                {battery?.warning_level === 'danger'
+                  ? 'Đang ngắt sạc bảo vệ (>45°C)'
+                  : 'Tự động ngắt khi >45°C'}
               </dd>
             </div>
           </dl>
