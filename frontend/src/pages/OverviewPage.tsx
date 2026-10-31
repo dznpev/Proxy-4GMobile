@@ -567,11 +567,11 @@ export function OverviewPage() {
                     {device.battery.level != null ? `${device.battery.level}%` : '—'}
                   </span>
                   {device.battery.charging_disabled ? (
-                    <Badge size="sm" tone="warning" label="Đã ngắt sạc" />
+                    <Badge size="sm" tone="warning" label="Đã ngắt sạc" icon="alert" />
                   ) : device.battery.status === 'charging' ? (
-                    <Badge size="sm" tone="neutral" label="Đang sạc USB" />
+                    <Badge size="sm" tone="neutral" label="Đang sạc USB" icon="zap" />
                   ) : device.battery.plugged === 'usb' ? (
-                    <Badge size="sm" tone="neutral" label="Cổng USB" />
+                    <Badge size="sm" tone="neutral" label="Cổng USB" icon="zap" />
                   ) : null}
                 </dd>
               </div>
