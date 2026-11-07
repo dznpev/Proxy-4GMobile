@@ -98,6 +98,7 @@ class MobileProxyService:
         self._charging_disabled = False
         self._overheat_warning_logged = False
         self._overheat_critical_logged = False
+        self._disconnect_misses = 0
 
         self.device: dict[str, Any] = {
             "connected": False,
@@ -347,6 +348,7 @@ class MobileProxyService:
                 ]
 
                 if ready:
+                    self._disconnect_misses = 0
                     serial = ready[0].serial
                     with self._state_lock:
                         current = self.device["serial"]
@@ -368,11 +370,17 @@ class MobileProxyService:
                         )
                 else:
                     with self._state_lock:
-                        was_known = self.device["connected"] or self.device[
-                            "status"
-                        ] in ("ready", "preparing", "error", "unauthorized")
-                    if was_known:
-                        self._mark_disconnected()
+                        rotating = self._rotating
+                    self._disconnect_misses += 1
+                    # Debounce disconnects: require at least 3 misses (~6s) or 5 misses (~10s) during rotation
+                    threshold = 5 if rotating else 3
+                    if self._disconnect_misses >= threshold:
+                        with self._state_lock:
+                            was_known = self.device["connected"] or self.device[
+                                "status"
+                            ] in ("ready", "preparing", "error", "unauthorized")
+                        if was_known:
+                            self._mark_disconnected()
 
                     if unauthorized:
                         serial = unauthorized[0].serial
@@ -443,6 +451,16 @@ class MobileProxyService:
                 finally:
                     self._op_lock.release()
             return
+        else:
+            try:
+                is_fwd = getattr(self.adb, "is_forwarded", None)
+                if callable(is_fwd) and not is_fwd(serial, self.config.proxy_port):
+                    self.adb.forward(serial, self.config.proxy_port, self.config.proxy_port)
+                    with self._state_lock:
+                        self.proxy["forwarded"] = True
+                        self.device["forwarded"] = True
+            except Exception:
+                pass
 
         self._update_battery(serial)
         self._update_traffic(serial)
@@ -918,7 +936,7 @@ class MobileProxyService:
                         ),
                     )
                     self._toggle_network(serial, method, enabled=False)
-                    self._sleep(5.0 if method == "airplane" else 5.0)
+                    self._sleep(3.0 if method == "airplane" else 2.5)
 
                     self._set_rotation(
                         step="waiting",
@@ -933,19 +951,36 @@ class MobileProxyService:
                         progress=75 if attempt == 1 else 88,
                         message="Đang xác minh IP công khai...",
                     )
-                    try:
-                        info = self.checker.check(self.config.proxy_port)
-                    except NetworkError as exc:
-                        last_error = str(exc)
+
+                    # Adaptive polling loop: allow time for 4G radio negotiation & DNS resolution
+                    poll_deadline = time.time() + (12.0 * self.time_scale)
+                    info = None
+                    while time.time() < poll_deadline and not self._stop.is_set():
+                        try:
+                            is_fwd = getattr(self.adb, "is_forwarded", None)
+                            if callable(is_fwd) and not is_fwd(serial, self.config.proxy_port):
+                                self.adb.forward(serial, self.config.proxy_port, self.config.proxy_port)
+
+                            info = self.checker.check(self.config.proxy_port)
+                            if info is not None:
+                                break
+                        except NetworkError as exc:
+                            last_error = str(exc)
+                            if "Không kết nối được tới proxy trên máy tính" in last_error:
+                                self.adb.forward(serial, self.config.proxy_port, self.config.proxy_port)
+                        self._sleep(1.5)
+
+                    if info is None:
+                        err_text = last_error or "Không lấy được IP sau khi xoay."
                         if attempt < attempts:
                             self.events.add(
                                 "warning",
-                                f"Chưa xác minh được IP ({exc}). Thử lại lần {attempt + 1}/{attempts}.",
+                                f"Chưa xác minh được IP ({err_text}). Thử lại lần {attempt + 1}/{attempts}.",
                                 source="rotation",
                             )
-                            self._sleep(4.0)
+                            self._sleep(3.0)
                             continue
-                        raise
+                        raise NetworkError(err_text)
 
                     if old_ip and info.ip == old_ip and attempt < attempts:
                         self.events.add(
@@ -1091,7 +1126,8 @@ class MobileProxyService:
             )
 
     def _ensure_daemon_after_rotation(self, serial: str) -> None:
-        alive = bool(self.adb.pidof(serial, "mini_proxy"))
+        pids = self.adb.pidof(serial, "mini_proxy")
+        alive = bool(pids)
         if not alive:
             self.events.add(
                 "warning",
@@ -1103,9 +1139,16 @@ class MobileProxyService:
                     "Không thể khởi động lại daemon proxy sau khi xoay IP."
                 )
         else:
-            self.adb.forward(
-                serial, self.config.proxy_port, self.config.proxy_port
-            )
+            for _ in range(3):
+                self.adb.forward(
+                    serial, self.config.proxy_port, self.config.proxy_port
+                )
+                is_fwd = getattr(self.adb, "is_forwarded", None)
+                if callable(is_fwd) and not is_fwd(serial, self.config.proxy_port):
+                    self._sleep(0.4)
+                else:
+                    break
+
             with self._state_lock:
                 self.proxy.update({"running": True, "forwarded": True})
                 self.device["daemon_running"] = True

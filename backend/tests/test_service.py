@@ -276,6 +276,36 @@ ccmni0: 1048576  100    0    0    0     0          0         0   524288       50
                 checker.check(8080)
             self.assertIn("Proxy chưa có kết nối Internet", str(ctx.exception))
 
+    def test_monitor_debounce_logic(self) -> None:
+        service = MobileProxyService(
+            self.config,
+            demo=True,
+            echo_logs=False,
+            time_scale=0.01,
+        )
+        service.device["connected"] = True
+        service.device["status"] = "ready"
+        service.device["serial"] = "DEMO-4G-01"
+
+        # 1 missed check should not disconnect
+        service._disconnect_misses = 0
+        service._rotating = False
+
+        # Threshold is 3 when not rotating
+        threshold = 3
+        for miss in range(1, threshold):
+            service._disconnect_misses = miss
+            # Still below threshold
+            self.assertLess(service._disconnect_misses, threshold)
+            self.assertTrue(service.device["connected"])
+
+        # At threshold, it marks disconnected
+        service._disconnect_misses = threshold
+        service._mark_disconnected()
+        self.assertFalse(service.device["connected"])
+        self.assertEqual(service.device["status"], "disconnected")
+
+
 
 
 if __name__ == "__main__":
