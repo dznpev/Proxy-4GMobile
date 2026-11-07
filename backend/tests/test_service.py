@@ -187,6 +187,36 @@ Current Battery Service state:
         status_reset = self.service.status()
         self.assertEqual(status_reset["data_usage"]["today_total_bytes"], 0)
 
+    def test_adb_pidof_filters_errors_and_extracts_pids(self) -> None:
+        from unittest.mock import patch
+        from backend.mobile_proxy.adb import AdbClient
+
+        adb = AdbClient()
+        with patch.object(adb, "shell", return_value="error: device offline"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "")
+
+        with patch.object(adb, "shell", return_value="/system/bin/sh: pidof: not found"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "")
+
+        with patch.object(adb, "shell", return_value="10597"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "10597")
+
+        with patch.object(adb, "shell", return_value="10597 10598\n"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "10597 10598")
+
+    def test_adb_is_forwarded(self) -> None:
+        from unittest.mock import patch, MagicMock
+        from backend.mobile_proxy.adb import AdbClient
+
+        adb = AdbClient()
+        mock_res = MagicMock()
+        mock_res.stdout = "serial123 tcp:8080 tcp:8080\notherdev tcp:9090 tcp:9090\n"
+        with patch.object(adb, "_run", return_value=mock_res):
+            self.assertTrue(adb.is_forwarded("serial123", 8080))
+            self.assertFalse(adb.is_forwarded("serial123", 9090))
+            self.assertFalse(adb.is_forwarded("serial123", 8081))
+
+
     def test_parse_proc_net_dev(self) -> None:
         sample_proc = """
 Inter-|   Receive                                                |  Transmit
