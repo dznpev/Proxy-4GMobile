@@ -235,6 +235,48 @@ ccmni0: 1048576  100    0    0    0     0          0         0   524288       50
         self.assertEqual(parsed["tx_bytes"], 2097152 + 524288)
         self.assertEqual(parsed["total_bytes"], (10485760 + 1048576) + (2097152 + 524288))
 
+    def test_network_checker_fallback_on_503(self) -> None:
+        from unittest.mock import patch, MagicMock
+        from backend.mobile_proxy.network import NetworkChecker
+
+        checker = NetworkChecker()
+
+        resp_503 = MagicMock()
+        resp_503.status_code = 503
+        resp_503.text = "Service Temporarily Unavailable"
+
+        resp_ipwhois = MagicMock()
+        resp_ipwhois.status_code = 200
+        resp_ipwhois.json.return_value = {
+            "success": True,
+            "ip": "113.185.83.167",
+            "connection": {"isp": "VNPT Corp"},
+            "city": "Ho Chi Minh City",
+            "region": "Ho Chi Minh",
+            "country": "Vietnam",
+        }
+
+        with patch("requests.get", side_effect=[resp_503, resp_ipwhois]):
+            info = checker.check(8080)
+            self.assertEqual(info.ip, "113.185.83.167")
+            self.assertEqual(info.isp, "VNPT Corp")
+
+    def test_network_checker_detects_proxy_no_internet_503(self) -> None:
+        from unittest.mock import patch, MagicMock
+        from backend.mobile_proxy.network import NetworkChecker, NetworkError
+
+        checker = NetworkChecker()
+
+        resp_mini_proxy_503 = MagicMock()
+        resp_mini_proxy_503.status_code = 503
+        resp_mini_proxy_503.text = "dial tcp: lookup ip-api.com on 127.0.0.1:53: no such host"
+
+        with patch("requests.get", return_value=resp_mini_proxy_503):
+            with self.assertRaises(NetworkError) as ctx:
+                checker.check(8080)
+            self.assertIn("Proxy chưa có kết nối Internet", str(ctx.exception))
+
+
 
 if __name__ == "__main__":
     unittest.main()
