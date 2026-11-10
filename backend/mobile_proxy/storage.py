@@ -14,9 +14,11 @@ DEFAULT_SETTINGS: dict[str, Any] = {
     "auto_rotate_interval_min": 30,
     "rotate_method": "airplane",
     "daily_data_limit_gb": 4.0,
+    "language": "en",
 }
 
 ROTATE_METHODS = ("airplane", "data")
+LANGUAGES = ("en", "vi")
 MIN_INTERVAL_MIN = 2
 MAX_INTERVAL_MIN = 1440
 MAX_HISTORY = 100
@@ -76,6 +78,12 @@ def validate_settings(payload: dict[str, Any], base: dict[str, Any]) -> dict[str
         if limit < 0 or limit > 1000:
             raise ValueError("Giới hạn dung lượng phải từ 0 đến 1000 GB.")
         candidate["daily_data_limit_gb"] = round(limit, 2)
+
+    if "language" in payload:
+        language = payload["language"]
+        if language not in LANGUAGES:
+            raise ValueError("Ngôn ngữ không hợp lệ.")
+        candidate["language"] = language
 
     return candidate
 

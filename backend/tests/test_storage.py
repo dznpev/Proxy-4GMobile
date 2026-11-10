@@ -10,6 +10,7 @@ from pathlib import Path
 from backend.mobile_proxy.events import EventLog
 from backend.mobile_proxy.storage import (
     DEFAULT_SETTINGS,
+    LANGUAGES,
     DataUsageStore,
     HistoryStore,
     SettingsStore,
@@ -56,6 +57,28 @@ class ValidateSettingsTests(unittest.TestCase):
             validate_settings({"rotate_method": "wifi"}, DEFAULT_SETTINGS)
 
 
+class LanguageSettingsTests(unittest.TestCase):
+    def test_supported_languages(self) -> None:
+        self.assertEqual(LANGUAGES, ("en", "vi"))
+
+    def test_default_language_is_english(self) -> None:
+        self.assertEqual(DEFAULT_SETTINGS["language"], "en")
+
+    def test_language_patch_is_merged(self) -> None:
+        for language in LANGUAGES:
+            result = validate_settings({"language": language}, DEFAULT_SETTINGS)
+            self.assertEqual(result["language"], language)
+
+    def test_older_settings_without_language_default_to_english(self) -> None:
+        result = validate_settings({"rotate_method": "data"}, DEFAULT_SETTINGS)
+        self.assertEqual(result["language"], "en")
+
+    def test_invalid_language_is_rejected(self) -> None:
+        for value in ("invalid", "", None, "EN", 1):
+            with self.assertRaises(ValueError):
+                validate_settings({"language": value}, DEFAULT_SETTINGS)
+
+
 class StoreTests(unittest.TestCase):
     def test_settings_round_trip(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
@@ -66,6 +89,7 @@ class StoreTests(unittest.TestCase):
                 "auto_rotate_interval_min": 15,
                 "rotate_method": "data",
                 "daily_data_limit_gb": 4.0,
+                "language": "vi",
             }
             store.save(saved)
 
@@ -77,6 +101,18 @@ class StoreTests(unittest.TestCase):
             path = Path(directory) / "settings.json"
             path.write_text('{"auto_rotate_interval_min": 1}', encoding="utf-8")
             self.assertEqual(SettingsStore(path).load(), DEFAULT_SETTINGS)
+
+    def test_settings_file_without_language_loads_english(self) -> None:
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "settings.json"
+            path.write_text(
+                '{"auto_rotate_enabled": true, "rotate_method": "data"}',
+                encoding="utf-8",
+            )
+            loaded = SettingsStore(path).load()
+            self.assertEqual(loaded["language"], "en")
+            self.assertTrue(loaded["auto_rotate_enabled"])
+            self.assertEqual(loaded["rotate_method"], "data")
 
     def test_history_round_trip_and_filtering(self) -> None:
         with tempfile.TemporaryDirectory() as directory:
