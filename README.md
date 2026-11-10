@@ -15,7 +15,6 @@ Máy tính ──► Dashboard + JSON API ────────────�
 - **Xoay IP thủ công hoặc tự động** theo chu kỳ 2–1440 phút, hỗ trợ chế độ máy bay hoặc bật/tắt dữ liệu di động.
 - **Theo dõi trực tiếp** IP công khai, nhà mạng, vị trí, độ trễ và tiến trình xoay theo từng bước.
 - **Lịch sử + nhật ký cục bộ** lưu trong thư mục `data/` (đã gitignore), tối đa 100 lần xoay và 500 dòng nhật ký.
-- **Tương thích API cũ**: giữ nguyên `GET /status` và `GET /rotate` cho tool automation hiện có.
 - **Chế độ demo**: xem và kiểm thử toàn bộ giao diện mà không cần điện thoại.
 
 ## Yêu cầu
@@ -118,7 +117,7 @@ npm install
 npm run dev
 ```
 
-Mở **http://127.0.0.1:5173**; Vite proxy các request `/api`, `/status`, `/rotate` sang backend `127.0.0.1:8081`. Kiểm tra kiểu và build production bằng `npm run typecheck` / `npm run build`.
+Mở **http://127.0.0.1:5173**; Vite proxy các request `/api` sang backend `127.0.0.1:8081`. Kiểm tra kiểu và build production bằng `npm run typecheck` / `npm run build`.
 
 ## API cục bộ
 
@@ -146,20 +145,6 @@ curl http://127.0.0.1:8081/api/status
 curl -X POST http://127.0.0.1:8081/api/rotate
 curl -x http://127.0.0.1:8080 https://api.ipify.org
 ```
-
-### API tương thích
-
-```bash
-# Trạng thái kết nối và IP hiện tại
-curl http://127.0.0.1:8081/status
-# {"connected": true, "ip": "113.161.52.18"}
-
-# Xoay IP và chờ kết quả (dành cho tool automation cũ)
-curl http://127.0.0.1:8081/rotate
-# {"status": "success", "ip": "14.187.144.203"}
-```
-
-`GET /rotate` chờ tối đa 120 giây và trả `500` nếu xoay thất bại.
 
 ## Cài đặt và dữ liệu
 

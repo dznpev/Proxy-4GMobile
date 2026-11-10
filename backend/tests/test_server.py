@@ -177,17 +177,18 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(len(history["items"]), 1)
         self.assertEqual(history["items"][0]["status"], "success")
 
-    def test_logs_and_legacy_endpoints(self) -> None:
+    def test_logs_endpoint(self) -> None:
         status, logs = self.json_request("/api/logs?after=0&limit=10")
         self.assertEqual(status, 200)
         self.assertIn("items", logs)
         self.assertIn("last_id", logs)
         self.assertLessEqual(len(logs["items"]), 10)
 
-        status, legacy = self.json_request("/status")
-        self.assertEqual(status, 200)
-        self.assertEqual(set(legacy), {"connected", "ip"})
-        self.assertTrue(legacy["connected"])
+    def test_legacy_endpoints_are_removed(self) -> None:
+        status, _, _ = self.request("/status")
+        self.assertEqual(status, 404)
+        status, _, _ = self.request("/rotate")
+        self.assertEqual(status, 404)
 
     def test_battery_charge_control_endpoint(self) -> None:
         status, payload = self.json_request(
