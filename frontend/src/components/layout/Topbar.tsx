@@ -2,12 +2,14 @@ import { useEffect, useRef, useState, type RefObject } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Icon } from '../Icon';
 import { Button } from '../ui/button';
+import { FlagIcon } from '../ui/FlagIcon';
 import { Popover, PopoverContent, PopoverTitle, PopoverTrigger } from '../ui/popover';
 import { Spinner } from '../ui/spinner';
 import { StatusPill } from '../ui/StatusPill';
 import { ROUTES } from '../../lib/constants';
 import { statusSummary } from '../../lib/status';
 import { useDashboard } from '../../app/providers/DashboardProvider';
+import { useI18n } from '../../app/providers/I18nProvider';
 
 interface TopbarProps {
   onMenuToggle: () => void;
@@ -22,9 +24,16 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
   const [actionsOpen, setActionsOpen] = useState(false);
   const actionsButtonRef = useRef<HTMLButtonElement | null>(null);
 
+  const { locale, setLocale, t } = useI18n();
+
   const closeActions = () => {
     setActionsOpen(false);
     window.requestAnimationFrame(() => actionsButtonRef.current?.focus());
+  };
+
+  const handleToggleLanguage = () => {
+    const nextLocale = locale === 'en' ? 'vi' : 'en';
+    void setLocale(nextLocale);
   };
 
   // Close the mobile action popover when the inline buttons return at 521px.
@@ -47,12 +56,38 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
     startRotation,
   } = useDashboard();
 
-  const summary =
-    connection === 'offline'
-      ? { tone: 'danger' as const, label: 'Mất kết nối dịch vụ' }
-      : connection === 'loading'
-        ? { tone: 'neutral' as const, label: 'Đang kết nối…' }
-        : statusSummary(status);
+  const summary = (() => {
+    if (connection === 'offline') {
+      return { tone: 'danger' as const, label: t('status.summary.serviceOffline') };
+    }
+    if (connection === 'loading') {
+      return { tone: 'neutral' as const, label: t('status.summary.serviceConnecting') };
+    }
+    const base = statusSummary(status);
+    const d = status?.device;
+    const p = status?.proxy;
+    let label = base.label;
+    if (d?.status === 'ready') {
+      if (p?.running) {
+        label = status?.app?.demo
+          ? t('status.summary.proxyRunningDemo')
+          : t('status.summary.proxyRunning');
+      } else {
+        label = t('status.summary.daemonStopped');
+      }
+    } else if (d?.status === 'preparing') {
+      label = t('status.summary.connecting');
+    } else if (d?.status === 'unauthorized') {
+      label = t('status.summary.unauthorized');
+    } else if (d?.status === 'adb-missing') {
+      label = t('status.summary.adbMissing');
+    } else if (d?.status === 'error') {
+      label = t('status.summary.hardwareAttention');
+    } else if (!d) {
+      label = t('status.summary.noDevice');
+    }
+    return { ...base, label };
+  })();
 
   const device = status?.device;
   const rotationRunning = Boolean(status?.rotation?.running);
@@ -61,12 +96,19 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
   );
 
   const rotateTitle = rotationRunning
-    ? 'Đang xoay IP, vui lòng chờ.'
+    ? t('status.rotation.disabled.running')
     : !device?.connected
-      ? 'Cần kết nối thiết bị trước khi xoay IP.'
+      ? t('status.rotation.disabled.noDevice')
       : !device?.daemon_running
-        ? 'Daemon proxy chưa chạy. Hãy kết nối lại thiết bị.'
+        ? t('status.rotation.disabled.daemon')
         : '';
+
+  const eyebrowKey = `routes.${route}.eyebrow`;
+  const titleKey = `routes.${route}.title`;
+  const translatedEyebrow = t(eyebrowKey);
+  const translatedTitle = t(titleKey);
+  const eyebrow = translatedEyebrow !== eyebrowKey ? translatedEyebrow : meta.eyebrow;
+  const title = translatedTitle !== titleKey ? translatedTitle : meta.title;
 
   return (
     <header className="sticky top-0 z-30 flex min-h-[76px] items-center gap-4 border-b border-border bg-[rgba(247,247,248,0.94)] px-8 py-3 backdrop-blur-[8px] max-[800px]:min-h-0 max-[800px]:flex-wrap max-[800px]:gap-2 max-[800px]:px-4 max-[800px]:py-2.5 max-[520px]:px-2">
@@ -77,7 +119,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
         type="button"
         variant="ghost"
         size="icon-sm"
-        aria-label="Mở điều hướng"
+        aria-label={t('topbar.openNavigation')}
         aria-controls="sidebar"
         aria-expanded={menuOpen ? 'true' : 'false'}
         onClick={onMenuToggle}
@@ -87,13 +129,13 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
 
       <div className="min-w-0 max-[800px]:flex-1">
         <p className="eyebrow" id="page-eyebrow">
-          {meta.eyebrow}
+          {eyebrow}
         </p>
         <h1
           className="mt-px text-3xl font-semibold tracking-[-0.025em] max-[640px]:tracking-[-0.02em]"
           id="page-title"
         >
-          {meta.title}
+          {title}
         </h1>
       </div>
 
@@ -104,17 +146,30 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           label={summary.label}
         />
         <Button
+          id="language-btn"
+          type="button"
+          variant="outline"
+          size="sm"
+          className="pointer-coarse:min-h-11 max-[520px]:hidden gap-1.5 font-medium"
+          aria-label={t('topbar.language')}
+          title={locale === 'en' ? 'Chuyển sang Tiếng Việt' : 'Switch to English'}
+          onClick={handleToggleLanguage}
+        >
+          <FlagIcon code={locale === 'en' ? 'us' : 'vn'} />
+          <span className="font-semibold text-xs tracking-wider">{locale === 'en' ? 'EN' : 'VI'}</span>
+        </Button>
+        <Button
           id="refresh-btn"
           type="button"
           variant="outline"
           size="sm"
           className="pointer-coarse:min-h-11 max-[520px]:hidden"
           loading={refreshing}
-          aria-label="Làm mới trạng thái"
+          aria-label={t('topbar.refreshStatus')}
           onClick={() => void refreshAll({ spinner: true })}
         >
           {refreshing ? null : <Icon name="refresh" />}
-          <span>Làm mới</span>
+          <span>{t('topbar.refresh')}</span>
         </Button>
         <Button
           id="rotate-btn"
@@ -123,12 +178,12 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           className="pointer-coarse:min-h-11 max-[520px]:hidden"
           loading={rotatePending}
           disabled={!canRotate}
-          aria-label="Xoay IP ngay"
+          aria-label={t('topbar.rotateNow')}
           title={rotateTitle}
           onClick={() => void startRotation()}
         >
           {rotatePending ? null : <Icon name="refresh" />}
-          <span>Xoay IP</span>
+          <span>{t('topbar.rotate')}</span>
         </Button>
 
         <Popover onOpenChange={setActionsOpen} open={actionsOpen}>
@@ -143,10 +198,10 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
                 size="icon-sm"
                 aria-label={
                   refreshing || rotatePending
-                    ? 'Đang xử lý thao tác'
-                    : 'Mở thao tác nhanh'
+                    ? t('topbar.processing')
+                    : t('topbar.openQuickActions')
                 }
-                title="Thao tác nhanh"
+                title={t('topbar.quickActions')}
               />
             }
           >
@@ -158,7 +213,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           </PopoverTrigger>
           <PopoverContent className="w-[min(17rem,calc(100vw-1rem))]">
             <PopoverTitle className="px-1.5 pb-1.5 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
-              Thao tác nhanh
+              {t('topbar.quickActions')}
             </PopoverTitle>
             <div className="grid gap-1.5">
               <Button
@@ -172,7 +227,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
                 }}
               >
                 {refreshing ? null : <Icon name="refresh" />}
-                <span>Làm mới</span>
+                <span>{t('topbar.refresh')}</span>
               </Button>
               <Button
                 className="min-h-11 w-full justify-start"
@@ -186,7 +241,23 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
                 }}
               >
                 {rotatePending ? null : <Icon name="refresh" />}
-                <span>Xoay IP</span>
+                <span>{t('topbar.rotate')}</span>
+              </Button>
+              <Button
+                id="mobile-language-btn"
+                className="min-h-11 w-full justify-start gap-2"
+                type="button"
+                variant="outline"
+                aria-label={t('topbar.language')}
+                onClick={() => {
+                  closeActions();
+                  handleToggleLanguage();
+                }}
+              >
+                <FlagIcon code={locale === 'en' ? 'us' : 'vn'} />
+                <span>
+                  {t('topbar.language')}: {locale === 'en' ? 'English (EN)' : 'Tiếng Việt (VI)'}
+                </span>
               </Button>
             </div>
             {rotateTitle ? (
