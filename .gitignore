@@ -24,8 +24,9 @@ Thumbs.db
 .idea/
 .vscode/
 
-# Documentation & design notes
+# Documentation & superpowers
 docs/
+.superpowers/
 design.md
 DESIGN.md
 
