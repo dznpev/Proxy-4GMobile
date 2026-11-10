@@ -7,6 +7,7 @@ import re
 import tempfile
 import time
 import unittest
+from http.client import HTTPConnection
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -188,6 +189,43 @@ class DashboardServerTests(unittest.TestCase):
         status, payload = self.json_request("/api/rotate", method="PATCH", payload={})
         self.assertEqual(status, 404)
         self.assertEqual(payload["error"]["code"], "not_found")
+
+    def test_patch_with_body_keeps_connection_in_sync(self) -> None:
+        body = json.dumps({"unexpected": True})
+        connection = HTTPConnection("127.0.0.1", self.port, timeout=10)
+        try:
+            connection.request(
+                "PATCH",
+                "/api/rotate",
+                body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            response = connection.getresponse()
+            self.assertEqual(response.status, 404)
+            payload = json.loads(response.read())
+            self.assertEqual(payload["error"]["code"], "not_found")
+
+            connection.request("GET", "/api/settings")
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertIn("language", json.loads(response.read())["settings"])
+
+            connection.request(
+                "PATCH",
+                "/missing-page",
+                body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            response = connection.getresponse()
+            self.assertEqual(response.status, 404)
+            response.read()
+
+            connection.request("GET", "/api/health")
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertTrue(json.loads(response.read())["ok"])
+        finally:
+            connection.close()
 
     def test_rotation_endpoint_and_history(self) -> None:
         status, payload = self.json_request("/api/rotate", method="POST", payload={})

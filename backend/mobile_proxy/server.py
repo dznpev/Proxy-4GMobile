@@ -165,8 +165,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             if path == "/api/settings":
                 self.do_POST()
             elif path.startswith("/api/"):
+                self._discard_request_body()
                 self._json_error(404, "not_found", "Không tìm thấy API.")
             else:
+                self._discard_request_body()
                 self._not_found()
         except (BrokenPipeError, ConnectionResetError):
             return
@@ -226,6 +228,29 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             raise _BadRequest("Nội dung yêu cầu phải là một đối tượng JSON.")
         return body
+
+    def _discard_request_body(self) -> None:
+        """Drain an unread body so HTTP/1.1 keep-alive connections stay in sync.
+
+        Used on paths that reject the request without parsing its payload. If the
+        body cannot be drained safely, close the connection instead of leaving
+        unread bytes that the next request would interpret as a request line.
+        """
+        if self.headers.get("Transfer-Encoding"):
+            self.close_connection = True
+            return
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            length = int(raw_length)
+        except ValueError:
+            self.close_connection = True
+            return
+        if length <= 0:
+            return
+        if length > MAX_BODY_BYTES:
+            self.close_connection = True
+            return
+        self.rfile.read(length)
 
     def _json(self, status: int, payload: dict[str, Any]) -> None:
         body = json.dumps(
