@@ -187,6 +187,36 @@ Current Battery Service state:
         status_reset = self.service.status()
         self.assertEqual(status_reset["data_usage"]["today_total_bytes"], 0)
 
+    def test_adb_pidof_filters_errors_and_extracts_pids(self) -> None:
+        from unittest.mock import patch
+        from backend.mobile_proxy.adb import AdbClient
+
+        adb = AdbClient()
+        with patch.object(adb, "shell", return_value="error: device offline"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "")
+
+        with patch.object(adb, "shell", return_value="/system/bin/sh: pidof: not found"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "")
+
+        with patch.object(adb, "shell", return_value="10597"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "10597")
+
+        with patch.object(adb, "shell", return_value="10597 10598\n"):
+            self.assertEqual(adb.pidof("serial123", "mini_proxy"), "10597 10598")
+
+    def test_adb_is_forwarded(self) -> None:
+        from unittest.mock import patch, MagicMock
+        from backend.mobile_proxy.adb import AdbClient
+
+        adb = AdbClient()
+        mock_res = MagicMock()
+        mock_res.stdout = "serial123 tcp:8080 tcp:8080\notherdev tcp:9090 tcp:9090\n"
+        with patch.object(adb, "_run", return_value=mock_res):
+            self.assertTrue(adb.is_forwarded("serial123", 8080))
+            self.assertFalse(adb.is_forwarded("serial123", 9090))
+            self.assertFalse(adb.is_forwarded("serial123", 8081))
+
+
     def test_parse_proc_net_dev(self) -> None:
         sample_proc = """
 Inter-|   Receive                                                |  Transmit
@@ -204,6 +234,78 @@ ccmni0: 1048576  100    0    0    0     0          0         0   524288       50
         self.assertEqual(parsed["rx_bytes"], 10485760 + 1048576)
         self.assertEqual(parsed["tx_bytes"], 2097152 + 524288)
         self.assertEqual(parsed["total_bytes"], (10485760 + 1048576) + (2097152 + 524288))
+
+    def test_network_checker_fallback_on_503(self) -> None:
+        from unittest.mock import patch, MagicMock
+        from backend.mobile_proxy.network import NetworkChecker
+
+        checker = NetworkChecker()
+
+        resp_503 = MagicMock()
+        resp_503.status_code = 503
+        resp_503.text = "Service Temporarily Unavailable"
+
+        resp_ipwhois = MagicMock()
+        resp_ipwhois.status_code = 200
+        resp_ipwhois.json.return_value = {
+            "success": True,
+            "ip": "113.185.83.167",
+            "connection": {"isp": "VNPT Corp"},
+            "city": "Ho Chi Minh City",
+            "region": "Ho Chi Minh",
+            "country": "Vietnam",
+        }
+
+        with patch("requests.get", side_effect=[resp_503, resp_ipwhois]):
+            info = checker.check(8080)
+            self.assertEqual(info.ip, "113.185.83.167")
+            self.assertEqual(info.isp, "VNPT Corp")
+
+    def test_network_checker_detects_proxy_no_internet_503(self) -> None:
+        from unittest.mock import patch, MagicMock
+        from backend.mobile_proxy.network import NetworkChecker, NetworkError
+
+        checker = NetworkChecker()
+
+        resp_mini_proxy_503 = MagicMock()
+        resp_mini_proxy_503.status_code = 503
+        resp_mini_proxy_503.text = "dial tcp: lookup ip-api.com on 127.0.0.1:53: no such host"
+
+        with patch("requests.get", return_value=resp_mini_proxy_503):
+            with self.assertRaises(NetworkError) as ctx:
+                checker.check(8080)
+            self.assertIn("Proxy chưa có kết nối Internet", str(ctx.exception))
+
+    def test_monitor_debounce_logic(self) -> None:
+        service = MobileProxyService(
+            self.config,
+            demo=True,
+            echo_logs=False,
+            time_scale=0.01,
+        )
+        service.device["connected"] = True
+        service.device["status"] = "ready"
+        service.device["serial"] = "DEMO-4G-01"
+
+        # 1 missed check should not disconnect
+        service._disconnect_misses = 0
+        service._rotating = False
+
+        # Threshold is 3 when not rotating
+        threshold = 3
+        for miss in range(1, threshold):
+            service._disconnect_misses = miss
+            # Still below threshold
+            self.assertLess(service._disconnect_misses, threshold)
+            self.assertTrue(service.device["connected"])
+
+        # At threshold, it marks disconnected
+        service._disconnect_misses = threshold
+        service._mark_disconnected()
+        self.assertFalse(service.device["connected"])
+        self.assertEqual(service.device["status"], "disconnected")
+
+
 
 
 if __name__ == "__main__":

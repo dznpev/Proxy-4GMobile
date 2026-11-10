@@ -23,3 +23,8 @@ frontend/dist/
 Thumbs.db
 .idea/
 .vscode/
+
+# Documentation & design notes
+docs/
+design.md
+

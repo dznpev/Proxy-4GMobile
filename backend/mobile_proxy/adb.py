@@ -2,10 +2,21 @@
 
 from __future__ import annotations
 
+import os
 import shutil
 import subprocess
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
+
+
+def resolve_adb_path(executable: str = "adb") -> str:
+    """Resolve the ADB binary path, preferring platform-tools on Windows if default."""
+    if executable == "adb":
+        standard_path = Path(r"C:\platform-tools\adb.exe")
+        if standard_path.is_file():
+            return str(standard_path)
+    return executable
 
 
 @dataclass(frozen=True)
@@ -16,7 +27,7 @@ class AdbDevice:
 
 class AdbClient:
     def __init__(self, executable: str = "adb") -> None:
-        self.executable = executable
+        self.executable = resolve_adb_path(executable)
 
     def available(self) -> bool:
         return shutil.which(self.executable) is not None
@@ -79,7 +90,20 @@ class AdbClient:
         return (result.stdout or result.stderr or "").strip()
 
     def pidof(self, serial: str, process: str) -> str:
-        return self.shell(serial, f"pidof {process}", timeout=8)
+        output = self.shell(serial, f"pidof {process}", timeout=8)
+        # Filter for genuine numeric PIDs, ignoring error messages or shell banners
+        pids = [part for part in output.split() if part.isdigit()]
+        return " ".join(pids)
+
+    def is_forwarded(self, serial: str, local_port: int) -> bool:
+        """Check if local_port is actively forwarded to the specified device."""
+        result = self._run(["forward", "--list"], timeout=8)
+        target = f"tcp:{local_port}"
+        for line in result.stdout.splitlines():
+            parts = line.strip().split()
+            if len(parts) >= 2 and parts[0] == serial and parts[1] == target:
+                return True
+        return False
 
     def battery_info(self, serial: str) -> dict[str, Any]:
         """Query and parse Android battery and thermal status via dumpsys battery."""
@@ -95,7 +119,10 @@ class AdbClient:
         return bool(which_su and "not found" not in which_su.lower())
 
     def set_charging(self, serial: str, enabled: bool) -> bool:
-        """Control charging state via ADB dumpsys or kernel sysfs if rooted."""
+        """Control charging state via ADB dumpsys or kernel sysfs if rooted.
+
+        Does not touch input_suspend or batt_slate_mode to avoid suspending USB PHY.
+        """
         if enabled:
             self.shell(serial, "dumpsys battery reset", timeout=8)
             # Restore kernel sysfs charging nodes across Qualcomm, MediaTek, Samsung, Pixel
@@ -112,15 +139,13 @@ class AdbClient:
         else:
             self.shell(serial, "dumpsys battery set usb 0", timeout=8)
             self.shell(serial, "dumpsys battery set status 4", timeout=8)
-            # Disable charging in kernel sysfs across Qualcomm, MediaTek, Samsung, Pixel
+            # Disable charging in kernel sysfs across Qualcomm, MediaTek, Samsung, Pixel safely
             self.shell(
                 serial,
                 "su -c 'for f in /sys/class/power_supply/battery/charging_enabled "
                 "/sys/class/power_supply/battery/battery_charging_enabled "
                 "/sys/devices/platform/charger/charging_enabled; do "
-                "[ -f $f ] && echo 0 > $f; done; "
-                "[ -f /sys/class/power_supply/battery/input_suspend ] && echo 1 > /sys/class/power_supply/battery/input_suspend; "
-                "[ -f /sys/class/power_supply/battery/batt_slate_mode ] && echo 1 > /sys/class/power_supply/battery/batt_slate_mode;' 2>/dev/null",
+                "[ -f $f ] && echo 0 > $f; done;' 2>/dev/null",
                 timeout=8,
             )
         return True
