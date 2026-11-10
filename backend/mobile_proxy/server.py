@@ -100,10 +100,6 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                         "demo": self.service.demo,
                     },
                 )
-            elif path == "/status":
-                self._legacy_status()
-            elif path == "/rotate":
-                self._legacy_rotate()
             elif path.startswith("/api/"):
                 self._json_error(404, "not_found", "Không tìm thấy API.")
             else:
@@ -161,32 +157,6 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._json_error(422, "validation_error", str(exc))
         except Exception as exc:  # pragma: no cover - defensive
             self._handle_unexpected(exc)
-
-    # -- Legacy API (v1 compatibility) ---------------------------------
-    def _legacy_status(self) -> None:
-        status = self.service.status()
-        self._json(
-            200,
-            {
-                "connected": bool(status["device"]["connected"]),
-                "ip": status["network"]["ip"],
-            },
-        )
-
-    def _legacy_rotate(self) -> None:
-        try:
-            rotation = self.service.rotate(trigger="legacy", wait=True)
-            success = rotation.get("status") == "success"
-        except ServiceError:
-            success = False
-        status = self.service.status()
-        self._json(
-            200 if success else 500,
-            {
-                "status": "success" if success else "failed",
-                "ip": status["network"].get("ip"),
-            },
-        )
 
     # -- Static files ---------------------------------------------------
     def _serve_index(self) -> None:

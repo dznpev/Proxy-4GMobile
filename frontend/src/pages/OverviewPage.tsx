@@ -761,7 +761,7 @@ export function OverviewPage() {
             </li>
             <li>Xoay IP không làm gián đoạn dashboard.</li>
             <li>
-              API tương thích: <code>/rotate</code> và <code>/status</code>.
+              API điều khiển: <code>POST /api/rotate</code> và <code>GET /api/status</code>.
             </li>
           </ul>
         </Card>

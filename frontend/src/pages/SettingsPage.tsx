@@ -424,18 +424,6 @@ export function SettingsPage() {
               </dt>
               <dd>Bắt đầu xoay IP, trả về ngay.</dd>
             </div>
-            <div>
-              <dt>
-                <code>GET /rotate</code>
-              </dt>
-              <dd>Tương thích API cũ; chờ và trả IP mới.</dd>
-            </div>
-            <div>
-              <dt>
-                <code>GET /status</code>
-              </dt>
-              <dd>Tương thích API cũ; kết nối và IP.</dd>
-            </div>
           </dl>
           <p className="meta-text">
             API chỉ lắng nghe trên loopback và không yêu cầu xác thực.
