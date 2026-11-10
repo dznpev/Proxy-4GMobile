@@ -53,38 +53,12 @@ export function Sidebar({
     port = app?.control_port || '—';
   }
 
-  const summary = (() => {
-    if (connection === 'offline') {
-      return { tone: 'danger' as const, label: t('status.summary.serviceOffline') };
-    }
-    if (connection === 'loading') {
-      return { tone: 'neutral' as const, label: t('status.summary.serviceConnecting') };
-    }
-    const base = statusSummary(status);
-    const d = status?.device;
-    const p = status?.proxy;
-    let label = base.label;
-    if (d?.status === 'ready') {
-      if (p?.running) {
-        label = status?.app?.demo
-          ? t('status.summary.proxyRunningDemo')
-          : t('status.summary.proxyRunning');
-      } else {
-        label = t('status.summary.daemonStopped');
-      }
-    } else if (d?.status === 'preparing') {
-      label = t('status.summary.connecting');
-    } else if (d?.status === 'unauthorized') {
-      label = t('status.summary.unauthorized');
-    } else if (d?.status === 'adb-missing') {
-      label = t('status.summary.adbMissing');
-    } else if (d?.status === 'error') {
-      label = t('status.summary.hardwareAttention');
-    } else if (!d) {
-      label = t('status.summary.noDevice');
-    }
-    return { ...base, label };
-  })();
+  const summary =
+    connection === 'offline'
+      ? { tone: 'danger' as const, label: t('status.summary.serviceOffline'), icon: 'alert' }
+      : connection === 'loading'
+        ? { tone: 'neutral' as const, label: t('status.summary.serviceConnecting'), icon: 'refresh' }
+        : statusSummary(status, t);
 
   const statusDotClass =
     connection === 'offline' || summary.tone === 'danger'
@@ -197,7 +171,6 @@ export function Sidebar({
         <div
           className="flex min-h-6 items-center gap-1.5 text-xs font-medium text-sidebar-foreground"
           id="sidebar-status"
-          aria-label={t('sidebar.status')}
           title={t('sidebar.status')}
         >
           <span

@@ -56,38 +56,12 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
     startRotation,
   } = useDashboard();
 
-  const summary = (() => {
-    if (connection === 'offline') {
-      return { tone: 'danger' as const, label: t('status.summary.serviceOffline') };
-    }
-    if (connection === 'loading') {
-      return { tone: 'neutral' as const, label: t('status.summary.serviceConnecting') };
-    }
-    const base = statusSummary(status);
-    const d = status?.device;
-    const p = status?.proxy;
-    let label = base.label;
-    if (d?.status === 'ready') {
-      if (p?.running) {
-        label = status?.app?.demo
-          ? t('status.summary.proxyRunningDemo')
-          : t('status.summary.proxyRunning');
-      } else {
-        label = t('status.summary.daemonStopped');
-      }
-    } else if (d?.status === 'preparing') {
-      label = t('status.summary.connecting');
-    } else if (d?.status === 'unauthorized') {
-      label = t('status.summary.unauthorized');
-    } else if (d?.status === 'adb-missing') {
-      label = t('status.summary.adbMissing');
-    } else if (d?.status === 'error') {
-      label = t('status.summary.hardwareAttention');
-    } else if (!d) {
-      label = t('status.summary.noDevice');
-    }
-    return { ...base, label };
-  })();
+  const summary =
+    connection === 'offline'
+      ? { tone: 'danger' as const, label: t('status.summary.serviceOffline'), icon: 'alert' }
+      : connection === 'loading'
+        ? { tone: 'neutral' as const, label: t('status.summary.serviceConnecting'), icon: 'refresh' }
+        : statusSummary(status, t);
 
   const device = status?.device;
   const rotationRunning = Boolean(status?.rotation?.running);
@@ -151,7 +125,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           variant="outline"
           size="sm"
           className="pointer-coarse:min-h-11 max-[520px]:hidden gap-1.5 font-medium"
-          aria-label={t('topbar.language')}
+          aria-label={`${t('topbar.language')}: ${locale.toUpperCase()}`}
           title={locale === 'en' ? 'Chuyển sang Tiếng Việt' : 'Switch to English'}
           onClick={handleToggleLanguage}
         >
