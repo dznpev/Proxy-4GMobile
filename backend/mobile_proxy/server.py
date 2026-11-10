@@ -158,6 +158,21 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         except Exception as exc:  # pragma: no cover - defensive
             self._handle_unexpected(exc)
 
+    def do_PATCH(self) -> None:  # noqa: N802
+        """PATCH is an alias of POST for partial settings updates."""
+        try:
+            path = unquote(urlparse(self.path).path)
+            if path == "/api/settings":
+                self.do_POST()
+            elif path.startswith("/api/"):
+                self._json_error(404, "not_found", "Không tìm thấy API.")
+            else:
+                self._not_found()
+        except (BrokenPipeError, ConnectionResetError):
+            return
+        except Exception as exc:  # pragma: no cover - defensive
+            self._handle_unexpected(exc)
+
     # -- Static files ---------------------------------------------------
     def _serve_index(self) -> None:
         self._serve_file(

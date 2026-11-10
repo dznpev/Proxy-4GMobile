@@ -216,7 +216,7 @@ Dashboard và API mặc định lắng nghe trên `127.0.0.1:8081`. **Không có
 | `GET` | `/api/health` | Kiểm tra nhanh tên ứng dụng, phiên bản và cờ demo. |
 | `POST` | `/api/rotate` | Bắt đầu xoay IP. Trả `202` ngay. |
 | `POST` | `/api/check` | Kiểm tra lại kết nối và IP công khai qua proxy. |
-| `POST` | `/api/settings` | Cập nhật cài đặt. Chấp nhận object cài đặt một phần. |
+| `POST` / `PATCH` | `/api/settings` | Cập nhật cài đặt. Chấp nhận object cài đặt một phần. |
 | `POST` | `/api/history/clear` | Xóa lịch sử xoay. |
 | `POST` | `/api/logs/clear` | Xóa nhật ký sự kiện. |
 | `POST` | `/api/usage/reset` | Đặt lại bộ đếm dung lượng hôm nay. |
@@ -234,7 +234,7 @@ curl http://127.0.0.1:8081/api/status
 curl -X POST http://127.0.0.1:8081/api/rotate
 
 # Chuyển dashboard và nhật ký mới sang tiếng Việt
-curl -X POST http://127.0.0.1:8081/api/settings \
+curl -X PATCH http://127.0.0.1:8081/api/settings \
   -H "Content-Type: application/json" \
   -d '{"language": "vi"}'
 

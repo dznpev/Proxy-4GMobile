@@ -216,7 +216,7 @@ The dashboard and API listen on `127.0.0.1:8081` by default. There is **no authe
 | `GET` | `/api/health` | Lightweight health check with app name, version, and demo flag. |
 | `POST` | `/api/rotate` | Start an IP rotation. Returns `202` immediately. |
 | `POST` | `/api/check` | Re-check connectivity and the public IP through the proxy. |
-| `POST` | `/api/settings` | Update settings. Accepts a partial settings object. |
+| `POST` / `PATCH` | `/api/settings` | Update settings. Accepts a partial settings object. |
 | `POST` | `/api/history/clear` | Clear rotation history. |
 | `POST` | `/api/logs/clear` | Clear the event log. |
 | `POST` | `/api/usage/reset` | Reset today's data usage counters. |
@@ -234,7 +234,7 @@ curl http://127.0.0.1:8081/api/status
 curl -X POST http://127.0.0.1:8081/api/rotate
 
 # Switch the dashboard and new logs to Vietnamese
-curl -X POST http://127.0.0.1:8081/api/settings \
+curl -X PATCH http://127.0.0.1:8081/api/settings \
   -H "Content-Type: application/json" \
   -d '{"language": "vi"}'
 

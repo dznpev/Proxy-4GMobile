@@ -154,6 +154,41 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(status, 422)
         self.assertEqual(payload["error"]["code"], "validation_error")
 
+    def test_settings_patch_updates_language(self) -> None:
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "vi"}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["settings"]["language"], "vi")
+
+        status, settings = self.json_request("/api/settings")
+        self.assertEqual(status, 200)
+        self.assertEqual(settings["settings"]["language"], "vi")
+
+        status, logs = self.json_request("/api/logs?after=0&limit=500")
+        self.assertEqual(status, 200)
+        self.assertTrue(
+            any("Đã đổi ngôn ngữ" in item["message"] for item in logs["items"]),
+            "PATCH should record a Vietnamese language-change log",
+        )
+
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "fr"}
+        )
+        self.assertEqual(status, 422)
+        self.assertEqual(payload["error"]["code"], "validation_error")
+
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "en"}
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["settings"]["language"], "en")
+
+        status, payload = self.json_request("/api/rotate", method="PATCH", payload={})
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["error"]["code"], "not_found")
+
     def test_rotation_endpoint_and_history(self) -> None:
         status, payload = self.json_request("/api/rotate", method="POST", payload={})
         self.assertEqual(status, 202)

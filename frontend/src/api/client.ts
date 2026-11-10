@@ -25,7 +25,7 @@ export class ApiError extends Error {
 }
 
 interface RequestOptions {
-  method?: 'GET' | 'POST';
+  method?: 'GET' | 'POST' | 'PATCH';
   body?: unknown;
   timeout?: number;
 }
@@ -91,7 +91,7 @@ export const dashboardApi = {
   check: () =>
     api<CheckResponse>('/api/check', { method: 'POST', body: {}, timeout: 25_000 }),
   saveSettings: (patch: Partial<Settings>) =>
-    api<ActionResponse>('/api/settings', { method: 'POST', body: patch, timeout: 15_000 }),
+    api<ActionResponse>('/api/settings', { method: 'PATCH', body: patch, timeout: 15_000 }),
   clearHistory: () => api<ActionResponse>('/api/history/clear', { method: 'POST', body: {} }),
   clearLogs: () => api<ActionResponse>('/api/logs/clear', { method: 'POST', body: {} }),
   resetUsage: () => api<ActionResponse>('/api/usage/reset', { method: 'POST', body: {} }),
