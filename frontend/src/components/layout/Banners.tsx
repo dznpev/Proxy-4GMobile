@@ -8,51 +8,55 @@ import {
 } from '../ui/alert';
 import { Button, buttonVariants } from '../ui/button';
 import { useDashboard } from '../../app/providers/DashboardProvider';
+import { useI18n } from '../../app/providers/I18nProvider';
 
 type BannerVariant = 'error' | 'info' | 'warning';
+
+type Translate = (keyPath: string, params?: Record<string, string | number>) => string;
 
 function deviceBannerCopy(
   status: string,
   error: string | null,
   adbAvailable: boolean,
+  t: Translate,
 ): { title: string; text: string; variant: BannerVariant; icon: string } {
   switch (status) {
     case 'preparing':
       return {
-        title: 'Đang thiết lập thiết bị',
-        text: 'Đang đồng bộ daemon proxy và kiểm tra kết nối 4G. Quá trình mất vài giây.',
+        title: t('banners.preparingTitle'),
+        text: t('banners.preparingText'),
         variant: 'info',
         icon: 'refresh',
       };
     case 'unauthorized':
       return {
-        title: 'Thiết bị chưa được ủy quyền',
-        text: 'Mở khóa điện thoại và chọn “Luôn cho phép từ máy tính này” trong hộp thoại gỡ lỗi USB.',
+        title: t('banners.unauthorizedTitle'),
+        text: t('banners.unauthorizedText'),
         variant: 'warning',
         icon: 'phone',
       };
     case 'adb-missing':
       return {
-        title: 'Không tìm thấy ADB',
-        text: 'Cài Android Platform Tools và thêm adb vào PATH, sau đó khởi động lại ứng dụng.',
+        title: t('banners.adbMissingTitle'),
+        text: t('banners.adbMissingText'),
         variant: 'warning',
         icon: 'alert',
       };
     case 'error':
       return {
-        title: 'Không thiết lập được proxy',
+        title: t('banners.setupErrorTitle'),
         text: error
           ? error
           : adbAvailable === false
-            ? 'Kiểm tra ADB và kết nối USB.'
-            : 'Mở trang Thiết bị để xem chi tiết.',
+            ? t('banners.setupErrorAdb')
+            : t('banners.setupErrorGeneric'),
         variant: 'error',
         icon: 'alert',
       };
     default:
       return {
-        title: 'Chưa có thiết bị Android',
-        text: 'Cắm cáp USB, bật Gỡ lỗi USB và ủy quyền cho máy tính.',
+        title: t('banners.noDeviceTitle'),
+        text: t('banners.noDeviceText'),
         variant: 'warning',
         icon: 'phone',
       };
@@ -61,15 +65,15 @@ function deviceBannerCopy(
 
 export function Banners() {
   const { status, connection, statusError, refreshAll } = useDashboard();
+  const { t } = useI18n();
 
   if (connection === 'offline') {
     return (
       <Alert className="mb-3" id="service-banner" variant="error">
         <Icon name="alert" />
-        <AlertTitle>Không kết nối được dịch vụ điều khiển.</AlertTitle>
+        <AlertTitle>{t('banners.serviceTitle')}</AlertTitle>
         <AlertDescription>
-          {statusError ||
-            'Dashboard sẽ tự thử lại. Kiểm tra cửa sổ terminal đang chạy proxy.'}
+          {statusError || t('banners.serviceFallback')}
         </AlertDescription>
         <AlertAction>
           <Button
@@ -79,7 +83,7 @@ export function Banners() {
             className="pointer-coarse:min-h-11"
             onClick={() => void refreshAll({ spinner: true })}
           >
-            Thử lại
+            {t('banners.retry')}
           </Button>
         </AlertAction>
       </Alert>
@@ -94,12 +98,14 @@ export function Banners() {
     return (
       <Alert className="mb-3" id="thermal-banner" variant="error">
         <Icon name="flame" />
-        <AlertTitle>Cảnh báo quá nhiệt pin: {status.device.battery.temperature}°C</AlertTitle>
+        <AlertTitle>
+          {t('banners.thermalTitle', { temperature: status.device.battery.temperature ?? '—' })}
+        </AlertTitle>
         <AlertDescription>
-          Nhiệt độ điện thoại vượt ngưỡng an toàn (45°C). Nguy cơ phồng và chai pin.
+          {t('banners.thermalBody')}
           {status.device.battery.charging_disabled
-            ? ' Đã tự động ngắt sạc bảo vệ thiết bị.'
-            : ' Hãy rút sạc hoặc chuyển sang vị trí thoáng mát.'}
+            ? t('banners.thermalDisabled')
+            : t('banners.thermalAction')}
         </AlertDescription>
         <AlertAction>
           <Link
@@ -111,7 +117,7 @@ export function Banners() {
             id="thermal-banner-link"
             to="/device"
           >
-            Quản lý pin
+            {t('banners.manageBattery')}
           </Link>
         </AlertAction>
       </Alert>
@@ -126,6 +132,7 @@ export function Banners() {
     status.device.status,
     status.device.error,
     status.app.adb_available,
+    t,
   );
 
   return (
@@ -143,7 +150,7 @@ export function Banners() {
           id="device-banner-link"
           to="/device"
         >
-          Xem thiết bị
+          {t('banners.viewDevice')}
         </Link>
       </AlertAction>
     </Alert>

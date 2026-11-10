@@ -126,7 +126,7 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
           size="sm"
           className="pointer-coarse:min-h-11 max-[520px]:hidden gap-1.5 font-medium"
           aria-label={`${t('topbar.language')}: ${locale.toUpperCase()}`}
-          title={locale === 'en' ? 'Chuyển sang Tiếng Việt' : 'Switch to English'}
+          title={locale === 'en' ? t('topbar.switchToVietnamese') : t('topbar.switchToEnglish')}
           onClick={handleToggleLanguage}
         >
           <FlagIcon code={locale === 'en' ? 'us' : 'vn'} />
@@ -230,7 +230,8 @@ export function Topbar({ onMenuToggle, menuButtonRef, menuOpen }: TopbarProps) {
               >
                 <FlagIcon code={locale === 'en' ? 'us' : 'vn'} />
                 <span>
-                  {t('topbar.language')}: {locale === 'en' ? 'English (EN)' : 'Tiếng Việt (VI)'}
+                  {t('topbar.language')}:{' '}
+                  {locale === 'en' ? t('topbar.languageEnglish') : t('topbar.languageVietnamese')}
                 </span>
               </Button>
             </div>

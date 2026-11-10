@@ -8,6 +8,9 @@ import en from './en';
  * `as const`.
  */
 const vi: typeof en = {
+  boot: {
+    missingRoot: 'Không tìm thấy phần tử gốc của dashboard.',
+  },
   app: {
     name: '4G Proxy',
     fullName: '4G Mobile Proxy',
@@ -77,6 +80,10 @@ const vi: typeof en = {
     processing: 'Đang xử lý thao tác',
     openNavigation: 'Mở điều hướng',
     language: 'Ngôn ngữ',
+    languageEnglish: 'English (EN)',
+    languageVietnamese: 'Tiếng Việt (VI)',
+    switchToEnglish: 'Chuyển sang Tiếng Anh',
+    switchToVietnamese: 'Chuyển sang Tiếng Việt',
   },
 
   actions: {
@@ -128,6 +135,8 @@ const vi: typeof en = {
     none: 'Không có',
     loading: 'Đang tải…',
     saving: 'Đang lưu…',
+    processing: 'Đang xử lý',
+    closeNotification: 'Đóng thông báo',
     saved: 'Đã lưu',
     never: 'Chưa bao giờ',
     notAvailable: '—',
@@ -341,6 +350,14 @@ const vi: typeof en = {
     sessionUptime: 'Phiên hoạt động',
     rotationRate: 'Tỷ lệ xoay',
     noData: 'Chưa có dữ liệu',
+    uptimeDisconnected: 'Chưa kết nối thiết bị',
+    uptimeSince: 'Kết nối từ {time}',
+    uptimePreparing: 'Đang thiết lập phiên proxy',
+    uptimeRefreshing: 'Phiên đang được làm mới',
+    reconnectDisabled: 'Cần phát hiện thiết bị trước khi kết nối lại.',
+    dataUsageProgress: 'Tiến độ sử dụng 4G',
+    dataUsageLimit: '/ {limit} GB',
+    autoNextInlineOff: 'Đang tắt',
     deviceEyebrow: 'Thiết bị',
     deviceTitle: 'Android qua ADB',
     noDevice: 'Chưa phát hiện thiết bị',
@@ -410,6 +427,8 @@ const vi: typeof en = {
     forwardedPort: 'Đã forward cổng {port}',
     notForwarded: 'Chưa forward',
     connectedSince: 'Kết nối từ',
+    reconnectDisabled: 'Cần phát hiện thiết bị trước khi kết nối lại.',
+    restartDisabled: 'Cần thiết bị đang kết nối để khởi động lại daemon.',
     attentionTitle: 'Thiết bị cần chú ý',
     reconnect: 'Kết nối lại',
     restartDaemon: 'Khởi động lại daemon',
@@ -566,6 +585,7 @@ const vi: typeof en = {
     proxy: 'Proxy',
     dataDir: 'Thư mục dữ liệu',
     aboutNote: 'Zero-app: daemon được đẩy tới /data/local/tmp, không cài APK.',
+    languageEyebrow: 'Giao diện',
     languageTitle: 'Ngôn ngữ hiển thị',
     languageDescription: 'Chọn ngôn ngữ dùng xuyên suốt dashboard.',
     languageEnglish: 'English',

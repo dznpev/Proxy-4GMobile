@@ -10,6 +10,9 @@
  * replaces them with the supplied values.
  */
 const en = {
+  boot: {
+    missingRoot: 'Dashboard root element not found.',
+  },
   app: {
     name: '4G Proxy',
     fullName: '4G Mobile Proxy',
@@ -79,6 +82,10 @@ const en = {
     processing: 'Processing action',
     openNavigation: 'Open navigation',
     language: 'Language',
+    languageEnglish: 'English (EN)',
+    languageVietnamese: 'Tiếng Việt (VI)',
+    switchToEnglish: 'Switch to English',
+    switchToVietnamese: 'Switch to Vietnamese',
   },
 
   actions: {
@@ -130,6 +137,8 @@ const en = {
     none: 'None',
     loading: 'Loading…',
     saving: 'Saving…',
+    processing: 'Processing',
+    closeNotification: 'Close notification',
     saved: 'Saved',
     never: 'Never',
     notAvailable: '—',
@@ -343,6 +352,14 @@ const en = {
     sessionUptime: 'Session uptime',
     rotationRate: 'Rotation success rate',
     noData: 'No data yet',
+    uptimeDisconnected: 'Device not connected',
+    uptimeSince: 'Connected since {time}',
+    uptimePreparing: 'Setting up the proxy session',
+    uptimeRefreshing: 'Session is being refreshed',
+    reconnectDisabled: 'Detect a device before reconnecting.',
+    dataUsageProgress: '4G usage progress',
+    dataUsageLimit: '/ {limit} GB',
+    autoNextInlineOff: 'Off',
     deviceEyebrow: 'Device',
     deviceTitle: 'Android over ADB',
     noDevice: 'No device detected',
@@ -412,6 +429,8 @@ const en = {
     forwardedPort: 'Forwarded port {port}',
     notForwarded: 'Not forwarded',
     connectedSince: 'Connected since',
+    reconnectDisabled: 'Detect a device before reconnecting.',
+    restartDisabled: 'The device must be connected to restart the daemon.',
     attentionTitle: 'Device needs attention',
     reconnect: 'Reconnect',
     restartDaemon: 'Restart daemon',
@@ -568,6 +587,7 @@ const en = {
     proxy: 'Proxy',
     dataDir: 'Data directory',
     aboutNote: 'Zero-app: the daemon is pushed to /data/local/tmp, no APK is installed.',
+    languageEyebrow: 'Interface',
     languageTitle: 'Display language',
     languageDescription: 'Choose the language used across the dashboard.',
     languageEnglish: 'English',

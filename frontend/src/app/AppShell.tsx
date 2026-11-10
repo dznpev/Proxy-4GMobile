@@ -6,10 +6,12 @@ import { Topbar } from '../components/layout/Topbar';
 import { Banners } from '../components/layout/Banners';
 import { ROUTES } from '../lib/constants';
 import { useDashboard } from './providers/DashboardProvider';
+import { useI18n } from './providers/I18nProvider';
 import { useMediaQuery } from './hooks/useMediaQuery';
 
 export function AppShell({ children }: { children: ReactNode }) {
   const { status, connection } = useDashboard();
+  const { t } = useI18n();
   const location = useLocation();
   const route = location.pathname.replace(/^\//, '') || 'overview';
   const meta = ROUTES[route] ?? ROUTES.overview;
@@ -25,8 +27,11 @@ export function AppShell({ children }: { children: ReactNode }) {
   const firstRouteRef = useRef(true);
 
   useEffect(() => {
-    document.title = `${meta.documentTitle} · 4G Mobile Proxy`;
-  }, [meta.documentTitle]);
+    const key = `routes.${route}.documentTitle`;
+    const translated = t(key);
+    const title = translated !== key ? translated : meta.documentTitle;
+    document.title = t('app.documentTitle', { title });
+  }, [meta.documentTitle, route, t]);
 
   useEffect(() => {
     document.body.classList.toggle('sidebar-open', isMobile && sidebarOpen);
@@ -157,8 +162,8 @@ export function AppShell({ children }: { children: ReactNode }) {
             <Banners />
             {children}
             <footer className="flex items-center justify-between gap-4 pt-5 text-xs text-muted-foreground max-[640px]:flex-col max-[640px]:items-start max-[640px]:gap-1">
-              <span>4G Mobile Proxy · {version}</span>
-              <span>Dữ liệu cục bộ · không gửi lên máy chủ</span>
+              <span>{t('app.footerVersion', { version })}</span>
+              <span>{t('app.footerPrivacy')}</span>
             </footer>
           </main>
         </div>

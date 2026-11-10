@@ -18,6 +18,7 @@ import {
 } from '../../components/ui/alert-dialog';
 import { Button } from '../../components/ui/button';
 import { cn } from '../../lib/utils';
+import { useI18n } from './I18nProvider';
 
 type ConfirmTone = 'danger' | 'primary' | 'secondary';
 
@@ -36,15 +37,9 @@ interface ConfirmContextValue {
 
 const ConfirmContext = createContext<ConfirmContextValue | null>(null);
 
-const DEFAULTS: Required<ConfirmOptions> = {
-  title: 'Xác nhận thao tác',
-  description: 'Thao tác này không thể hoàn tác.',
-  confirmLabel: 'Xác nhận',
-  tone: 'danger',
-};
-
 export function ConfirmProvider({ children }: { children: ReactNode }) {
-  const [options, setOptions] = useState<Required<ConfirmOptions> | null>(null);
+  const { t } = useI18n();
+  const [options, setOptions] = useState<ConfirmOptions | null>(null);
   const resolverRef = useRef<((value: boolean) => void) | null>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
   const cancelRef = useRef<HTMLButtonElement>(null);
@@ -65,12 +60,12 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
         : null;
     return new Promise<boolean>((resolve) => {
       resolverRef.current = resolve;
-      setOptions({ ...DEFAULTS, ...next });
+      setOptions(next);
     });
   }, []);
 
   const value = useMemo(() => ({ confirmAction }), [confirmAction]);
-  const isDanger = options?.tone === 'danger';
+  const isDanger = (options?.tone ?? 'danger') === 'danger';
 
   return (
     <ConfirmContext.Provider value={value}>
@@ -100,10 +95,10 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               <Icon name="alert" className="size-[17px]" />
             </div>
             <AlertDialogTitle>
-              {options?.title ?? DEFAULTS.title}
+              {options?.title ?? t('confirm.defaultTitle')}
             </AlertDialogTitle>
             <AlertDialogDescription>
-              {options?.description ?? DEFAULTS.description}
+              {options?.description ?? t('confirm.defaultDescription')}
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -112,14 +107,14 @@ export function ConfirmProvider({ children }: { children: ReactNode }) {
               variant="outline"
               onClick={() => settle(false)}
             >
-              Hủy
+              {t('confirm.cancel')}
             </Button>
             <Button
               ref={confirmRef}
               variant={isDanger ? 'destructive' : 'default'}
               onClick={() => settle(true)}
             >
-              {options?.confirmLabel ?? DEFAULTS.confirmLabel}
+              {options?.confirmLabel ?? t('confirm.defaultConfirm')}
             </Button>
           </AlertDialogFooter>
         </AlertDialogPopup>

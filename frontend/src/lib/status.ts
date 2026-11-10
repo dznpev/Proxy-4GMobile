@@ -1,5 +1,10 @@
 import type { DeviceInfo, HistoryItem, StatusResponse, Tone } from '../api/types';
 
+export type Translate = (
+  keyPath: string,
+  params?: Record<string, string | number>,
+) => string;
+
 export interface ToneLabel {
   tone: Tone;
   label: string;
@@ -32,7 +37,7 @@ export function deviceNavState(device: DeviceInfo | null | undefined): string {
 
 export function statusSummary(
   status: StatusResponse | null,
-  t?: (keyPath: string) => string,
+  t: Translate,
 ): ToneLabel {
   const device = status?.device;
   const proxy = status?.proxy;
@@ -40,59 +45,58 @@ export function statusSummary(
     if (proxy?.running) {
       return {
         tone: 'success',
-        label: t
-          ? status?.app?.demo
-            ? t('status.summary.proxyRunningDemo')
-            : t('status.summary.proxyRunning')
-          : status?.app?.demo
-            ? 'Proxy đang chạy · DEMO'
-            : 'Proxy đang chạy',
+        label: status?.app?.demo
+          ? t('status.summary.proxyRunningDemo')
+          : t('status.summary.proxyRunning'),
         icon: 'check',
       };
     }
     return {
       tone: 'warning',
-      label: t ? t('status.summary.daemonStopped') : 'Daemon proxy đã dừng',
+      label: t('status.summary.daemonStopped'),
       icon: 'alert',
     };
   }
   if (device?.status === 'preparing') {
     return {
       tone: 'info',
-      label: t ? t('status.summary.connecting') : 'Đang kết nối thiết bị…',
+      label: t('status.summary.connecting'),
       icon: 'refresh',
     };
   }
   if (device?.status === 'unauthorized') {
     return {
       tone: 'danger',
-      label: t ? t('status.summary.unauthorized') : 'Thiết bị chưa ủy quyền',
+      label: t('status.summary.unauthorized'),
       icon: 'alert',
     };
   }
   if (device?.status === 'adb-missing') {
     return {
       tone: 'danger',
-      label: t ? t('status.summary.adbMissing') : 'Không tìm thấy ADB',
+      label: t('status.summary.adbMissing'),
       icon: 'alert',
     };
   }
   if (device?.status === 'error') {
     return {
       tone: 'danger',
-      label: t ? t('status.summary.hardwareAttention') : 'Phần cứng cần chú ý',
+      label: t('status.summary.hardwareAttention'),
       icon: 'alert',
     };
   }
   return {
     tone: 'warning',
-    label: t ? t('status.summary.noDevice') : 'Chưa có thiết bị',
+    label: t('status.summary.noDevice'),
     icon: 'phone',
   };
 }
 
-export function historyStatusBadge(status: HistoryItem['status']): ToneLabel {
+export function historyStatusBadge(
+  status: HistoryItem['status'],
+  t: Translate,
+): ToneLabel {
   return status === 'success'
-    ? { tone: 'success', label: 'Thành công', icon: 'check' }
-    : { tone: 'danger', label: 'Thất bại', icon: 'alert' };
+    ? { tone: 'success', label: t('common.success'), icon: 'check' }
+    : { tone: 'danger', label: t('common.failed'), icon: 'alert' };
 }

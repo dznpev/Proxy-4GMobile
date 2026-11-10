@@ -9,19 +9,14 @@ import {
   type ReactNode,
 } from 'react';
 import { dashboardApi } from '../../api/client';
-import en, { type Locale, type TranslationDictionary } from '../../locales/en';
-import vi from '../../locales/vi';
+import { DEFAULT_LOCALE, isLocale, translate } from '../../lib/i18n';
+import { setFormatLocale } from '../../lib/format';
+import type { Locale } from '../../locales/en';
 
 export type { Locale };
 
-const CATALOGS: Record<Locale, TranslationDictionary> = { en, vi };
-const DEFAULT_LOCALE: Locale = 'en';
 const PRIMARY_STORAGE_KEY = 'preferred_language';
 const LEGACY_STORAGE_KEY = 'language';
-
-function isLocale(value: unknown): value is Locale {
-  return value === 'en' || value === 'vi';
-}
 
 /** Reads the persisted UI language, accepting both storage keys used in the wild. */
 function readStoredLocale(): Locale | null {
@@ -35,28 +30,6 @@ function readStoredLocale(): Locale | null {
     // Storage can be unavailable (private mode, disabled cookies, tests).
   }
   return null;
-}
-
-/** Walks a nested catalog by dot path and returns a string leaf, if any. */
-function lookup(source: unknown, keyPath: string): string | null {
-  let node: unknown = source;
-  for (const segment of keyPath.split('.')) {
-    if (typeof node !== 'object' || node === null) return null;
-    node = (node as Record<string, unknown>)[segment];
-  }
-  return typeof node === 'string' ? node : null;
-}
-
-/** Replaces `{name}` tokens; unknown placeholders are left untouched. */
-function interpolate(
-  template: string,
-  params?: Record<string, string | number>,
-): string {
-  if (!params) return template;
-  return template.replace(/\{(\w+)\}/g, (match, name: string) => {
-    const value = params[name];
-    return value === undefined ? match : String(value);
-  });
 }
 
 function persistLocale(locale: Locale): void {
@@ -85,6 +58,10 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   const [locale, setLocaleState] = useState<Locale>(
     () => storedLocaleRef.current ?? DEFAULT_LOCALE,
   );
+
+  // Keep non-React formatters (dates, relative times, durations) in sync with
+  // the active language before any child renders.
+  setFormatLocale(locale);
 
   // Adopt the backend language on first run, but never override an explicit
   // local choice (for example a switch made while the backend was offline).
@@ -128,13 +105,8 @@ export function I18nProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const t = useCallback(
-    (keyPath: string, params?: Record<string, string | number>): string => {
-      const template =
-        lookup(CATALOGS[locale], keyPath) ??
-        lookup(CATALOGS[DEFAULT_LOCALE], keyPath) ??
-        keyPath;
-      return interpolate(template, params);
-    },
+    (keyPath: string, params?: Record<string, string | number>): string =>
+      translate(locale, keyPath, params),
     [locale],
   );
 
