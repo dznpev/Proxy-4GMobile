@@ -34,7 +34,6 @@ Dashboard và nhật ký backend hỗ trợ đầy đủ hai ngôn ngữ Anh và
 - [Bảo mật](#bảo-mật)
 - [Đóng góp](#đóng-góp)
 - [Giấy phép](#giấy-phép)
-- [Metadata kho lưu trữ & chủ đề GitHub đề xuất](#metadata-kho-lưu-trữ--chủ-đề-github-đề-xuất)
 
 ## Tính năng
 
@@ -422,32 +421,3 @@ Phát hành theo [Giấy phép MIT](LICENSE).
 
 Bản quyền (c) 2026 dznpev.
 
-## Metadata kho lưu trữ & chủ đề GitHub đề xuất
-
-**Mô tả**
-
-> Turn your 4G Android phone into a high-performance rotating HTTP proxy on PC via ADB. Zero APK, no root required, with a modern local web dashboard.
-
-> Bản dịch: Biến điện thoại Android 4G thành proxy HTTP luân chuyển IP hiệu năng cao trên máy tính qua ADB. Không cần APK, không cần root, kèm dashboard web cục bộ hiện đại.
-
-**Chủ đề đề xuất**
-
-`4g-proxy` · `mobile-proxy` · `rotating-proxy` · `adb` · `android` · `http-proxy` · `react` · `typescript` · `python` · `tailwind-css` · `proxy-server`
-
-Áp dụng bằng GitHub CLI:
-
-```bash
-gh repo edit dznpev/Proxy-4GMobile \
-  --description "Turn your 4G Android phone into a high-performance rotating HTTP proxy on PC via ADB. Zero APK, no root required, with a modern local web dashboard." \
-  --add-topic 4g-proxy \
-  --add-topic mobile-proxy \
-  --add-topic rotating-proxy \
-  --add-topic adb \
-  --add-topic android \
-  --add-topic http-proxy \
-  --add-topic react \
-  --add-topic typescript \
-  --add-topic python \
-  --add-topic tailwind-css \
-  --add-topic proxy-server
-```

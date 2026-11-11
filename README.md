@@ -34,7 +34,6 @@ The dashboard and backend logs are fully bilingual (English and Vietnamese), wit
 - [Security](#security)
 - [Contributing](#contributing)
 - [License](#license)
-- [Repository Metadata & Recommended GitHub Topics/Tags](#repository-metadata--recommended-github-topicstags)
 
 ## Features
 
@@ -422,30 +421,3 @@ Released under the [MIT License](LICENSE).
 
 Copyright (c) 2026 dznpev.
 
-## Repository Metadata & Recommended GitHub Topics/Tags
-
-**Description**
-
-> Turn your 4G Android phone into a high-performance rotating HTTP proxy on PC via ADB. Zero APK, no root required, with a modern local web dashboard.
-
-**Recommended topics**
-
-`4g-proxy` · `mobile-proxy` · `rotating-proxy` · `adb` · `android` · `http-proxy` · `react` · `typescript` · `python` · `tailwind-css` · `proxy-server`
-
-Apply them with the GitHub CLI:
-
-```bash
-gh repo edit dznpev/Proxy-4GMobile \
-  --description "Turn your 4G Android phone into a high-performance rotating HTTP proxy on PC via ADB. Zero APK, no root required, with a modern local web dashboard." \
-  --add-topic 4g-proxy \
-  --add-topic mobile-proxy \
-  --add-topic rotating-proxy \
-  --add-topic adb \
-  --add-topic android \
-  --add-topic http-proxy \
-  --add-topic react \
-  --add-topic typescript \
-  --add-topic python \
-  --add-topic tailwind-css \
-  --add-topic proxy-server
-```
