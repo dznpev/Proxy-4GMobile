@@ -10,7 +10,7 @@ from typing import Any
 
 from .adb import AdbClient
 from .config import APP_NAME, APP_VERSION, BIN_DIR, REMOTE_BIN, AppConfig
-from .demo import DemoBackend
+from .demo import DemoBackend, make_demo_history
 from .events import EventLog
 from .i18n import DEFAULT_LANGUAGE, get_message
 from .network import NetworkChecker, NetworkError, NetworkInfo
@@ -1251,6 +1251,20 @@ class MobileProxyService:
         with self._state_lock:
             stats = self._stats_locked()
         return {"stats": stats}
+
+    def seed_demo_history(self) -> None:
+        """Seed sample rotation history if in demo mode and history is currently empty."""
+        if not self.demo:
+            return
+        with self._state_lock:
+            if self.history:
+                return
+            self.history = make_demo_history()
+            entries = list(self.history)
+        try:
+            self._history_store.save(entries)
+        except OSError:
+            pass
 
     # ------------------------------------------------------------------
     # Settings, scheduling and maintenance

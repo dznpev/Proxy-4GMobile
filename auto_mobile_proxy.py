@@ -175,6 +175,8 @@ def main(argv: list[str] | None = None) -> int:
         demo=config.demo,
         time_scale=0.35 if config.demo else 1.0,
     )
+    if config.demo:
+        service.seed_demo_history()
     try:
         server = DashboardServer(service, config)
     except OSError as exc:

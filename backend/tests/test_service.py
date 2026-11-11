@@ -222,6 +222,21 @@ class DemoServiceTests(unittest.TestCase):
         last_id = self.service.clear_logs()["last_id"]
         self.assertEqual(self.service.events.snapshot(after=last_id)["items"], [])
 
+    def test_seed_demo_history(self) -> None:
+        fresh_service = MobileProxyService(
+            self.config,
+            demo=True,
+            echo_logs=False,
+            time_scale=0.01,
+        )
+        self.assertEqual(len(fresh_service.history), 0)
+        fresh_service.seed_demo_history()
+        self.assertGreaterEqual(len(fresh_service.history), 4)
+        self.assertEqual(fresh_service.history[0]["status"], "success")
+        # Calling again does not duplicate
+        fresh_service.seed_demo_history()
+        self.assertEqual(len(fresh_service.history), 4)
+
     def test_reconnect_and_restart_are_rejected_without_device(self) -> None:
         disconnected = MobileProxyService(
             self.config,
