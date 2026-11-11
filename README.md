@@ -52,18 +52,33 @@ The dashboard and backend logs are fully bilingual (English and Vietnamese), wit
 
 ## How It Works
 
-```text
-┌─────────────┐   HTTP proxy    ┌──────────────────────┐   USB / ADB   ┌────────────────────┐
-│ Browser,    │ ──────────────► │ PC                   │ ────────────► │ Android phone (4G) │
-│ curl, apps  │  127.0.0.1:8080 │ auto_mobile_proxy.py │  adb forward  │ mini_proxy (Go)    │
-└─────────────┘                 │ dashboard :8081      │               │ /data/local/tmp    │
-                                └──────────────────────┘               └─────────┬──────────┘
-                                                                               │ 4G / LTE
-                                                                               ▼
-                                                                        Mobile carrier
-                                                                               │
-                                                                               ▼
-                                                                           Internet
+```mermaid
+flowchart LR
+    subgraph Client["💻 Client Applications"]
+        APP["Browser / curl / Scripts"]
+    end
+
+    subgraph Host["🖥️ Host PC (auto_mobile_proxy.py)"]
+        PROXY_PORT["HTTP Proxy Port<br/><code>127.0.0.1:8080</code>"]
+        DASH_PORT["Dashboard & API<br/><code>127.0.0.1:8081</code>"]
+    end
+
+    subgraph Device["📱 Android Phone (4G / LTE)"]
+        DAEMON["Go Proxy Daemon<br/><code>mini_proxy</code> (:8080)"]
+        ADB_CTRL["Device Controller<br/>(Airplane / Data Toggle)"]
+    end
+
+    subgraph WAN["🌐 Public Internet"]
+        CARRIER["Mobile Carrier Network<br/>(Dynamic 4G IP)"]
+        TARGET["Target Websites / APIs"]
+    end
+
+    APP -->|"HTTP / HTTPS"| PROXY_PORT
+    PROXY_PORT -->|"ADB Forward (USB)"| DAEMON
+    DASH_PORT -.->|"ADB Commands"| ADB_CTRL
+    ADB_CTRL -.->|"Rotate IP"| CARRIER
+    DAEMON -->|"Cellular Data"| CARRIER
+    CARRIER --> TARGET
 ```
 
 1. The Python application discovers the phone with `adb devices`.

@@ -52,18 +52,33 @@ Dashboard và nhật ký backend hỗ trợ đầy đủ hai ngôn ngữ Anh và
 
 ## Cách hoạt động
 
-```text
-┌─────────────┐   HTTP proxy    ┌──────────────────────┐   USB / ADB   ┌────────────────────┐
-│ Trình duyệt │ ──────────────► │ Máy tính             │ ────────────► │ Điện thoại Android │
-│ curl, app   │  127.0.0.1:8080 │ auto_mobile_proxy.py │  adb forward  │ mini_proxy (Go)    │
-└─────────────┘                 │ dashboard :8081      │               │ /data/local/tmp    │
-                                └──────────────────────┘               └─────────┬──────────┘
-                                                                               │ 4G / LTE
-                                                                               ▼
-                                                                        Nhà mạng di động
-                                                                               │
-                                                                               ▼
-                                                                           Internet
+```mermaid
+flowchart LR
+    subgraph Client["💻 Ứng dụng Client"]
+        APP["Trình duyệt / curl / Script"]
+    end
+
+    subgraph Host["🖥️ Máy tính (auto_mobile_proxy.py)"]
+        PROXY_PORT["Cổng HTTP Proxy<br/><code>127.0.0.1:8080</code>"]
+        DASH_PORT["Dashboard & API<br/><code>127.0.0.1:8081</code>"]
+    end
+
+    subgraph Device["📱 Điện thoại Android (4G / LTE)"]
+        DAEMON["Daemon Proxy Go<br/><code>mini_proxy</code> (:8080)"]
+        ADB_CTRL["Điều khiển thiết bị<br/>(Chế độ máy bay / Dữ liệu)"]
+    end
+
+    subgraph WAN["🌐 Mạng Internet"]
+        CARRIER["Mạng nhà mạng di động<br/>(IP 4G động)"]
+        TARGET["Website / API đích"]
+    end
+
+    APP -->|"HTTP / HTTPS"| PROXY_PORT
+    PROXY_PORT -->|"ADB Forward (USB)"| DAEMON
+    DASH_PORT -.->|"Lệnh ADB Shell"| ADB_CTRL
+    ADB_CTRL -.->|"Xoay IP"| CARRIER
+    DAEMON -->|"Dữ liệu di động 4G"| CARRIER
+    CARRIER --> TARGET
 ```
 
 1. Ứng dụng Python phát hiện điện thoại bằng `adb devices`.
