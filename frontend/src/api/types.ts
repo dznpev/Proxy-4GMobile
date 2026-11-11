@@ -106,6 +106,7 @@ export interface Settings {
   auto_rotate_interval_min: number;
   rotate_method: RotateMethod;
   daily_data_limit_gb: number;
+  language?: 'en' | 'vi';
 }
 
 export interface DataUsageInfo {

@@ -10,6 +10,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .config import APP_NAME, APP_VERSION, WEB_DIR, AppConfig
+from .i18n import get_message
 from .service import BusyError, MobileProxyService, NotConnectedError, ServiceError
 
 STATIC_TYPES = {
@@ -142,7 +143,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 payload = self.service.restart_proxy()
                 self._json(202, {"ok": True, **payload})
             elif path.startswith("/api/"):
-                self._json_error(404, "not_found", "Không tìm thấy API.")
+                lang = getattr(self.service, "language", "en")
+                self._json_error(404, "not_found", get_message("api.not_found", lang))
             else:
                 self._not_found()
         except (BrokenPipeError, ConnectionResetError):
@@ -155,6 +157,24 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             self._json_error(exc.http_status, exc.code, str(exc))
         except ValueError as exc:
             self._json_error(422, "validation_error", str(exc))
+        except Exception as exc:  # pragma: no cover - defensive
+            self._handle_unexpected(exc)
+
+    def do_PATCH(self) -> None:  # noqa: N802
+        """PATCH is an alias of POST for partial settings updates."""
+        try:
+            path = unquote(urlparse(self.path).path)
+            if path == "/api/settings":
+                self.do_POST()
+            elif path.startswith("/api/"):
+                self._discard_request_body()
+                lang = getattr(self.service, "language", "en")
+                self._json_error(404, "not_found", get_message("api.not_found", lang))
+            else:
+                self._discard_request_body()
+                self._not_found()
+        except (BrokenPipeError, ConnectionResetError):
+            return
         except Exception as exc:  # pragma: no cover - defensive
             self._handle_unexpected(exc)
 
@@ -211,6 +231,29 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         if not isinstance(body, dict):
             raise _BadRequest("Nội dung yêu cầu phải là một đối tượng JSON.")
         return body
+
+    def _discard_request_body(self) -> None:
+        """Drain an unread body so HTTP/1.1 keep-alive connections stay in sync.
+
+        Used on paths that reject the request without parsing its payload. If the
+        body cannot be drained safely, close the connection instead of leaving
+        unread bytes that the next request would interpret as a request line.
+        """
+        if self.headers.get("Transfer-Encoding"):
+            self.close_connection = True
+            return
+        raw_length = self.headers.get("Content-Length", "0")
+        try:
+            length = int(raw_length)
+        except ValueError:
+            self.close_connection = True
+            return
+        if length <= 0:
+            return
+        if length > MAX_BODY_BYTES:
+            self.close_connection = True
+            return
+        self.rfile.read(length)
 
     def _json(self, status: int, payload: dict[str, Any]) -> None:
         body = json.dumps(

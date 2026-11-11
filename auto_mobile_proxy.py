@@ -21,6 +21,7 @@ from pathlib import Path
 
 try:
     from backend.mobile_proxy.config import APP_NAME, APP_VERSION, AppConfig
+    from backend.mobile_proxy.i18n import get_message
     from backend.mobile_proxy.server import DashboardServer
     from backend.mobile_proxy.service import MobileProxyService, ServiceError
 except ModuleNotFoundError as exc:  # pragma: no cover - user environment
@@ -44,50 +45,50 @@ def build_parser() -> argparse.ArgumentParser:
     base = AppConfig.from_env()
     parser = argparse.ArgumentParser(
         prog="auto_mobile_proxy.py",
-        description="Biến điện thoại Android 4G thành proxy HTTP qua ADB, kèm dashboard quản lý.",
+        description="Turn an Android 4G phone into an HTTP proxy over ADB with a local dashboard.",
     )
     parser.add_argument(
         "--demo",
         action="store_true",
-        help="Chạy dữ liệu mô phỏng để xem dashboard mà không cần điện thoại.",
+        help="Run in demo mode with simulated device and IP (no phone required).",
     )
     parser.add_argument(
         "--proxy-port",
         type=int,
         default=base.proxy_port,
-        help=f"Cổng proxy HTTP trên máy tính (mặc định: {base.proxy_port}).",
+        help=f"HTTP proxy port on the host (default: {base.proxy_port}).",
     )
     parser.add_argument(
         "--control-port",
         type=int,
         default=base.control_port,
-        help=f"Cổng dashboard/API (mặc định: {base.control_port}).",
+        help=f"Dashboard and API port (default: {base.control_port}).",
     )
     parser.add_argument(
         "--host",
         default=base.control_host,
-        help=f"Địa chỉ bind dashboard (mặc định: {base.control_host}).",
+        help=f"Dashboard bind address (default: {base.control_host}).",
     )
     parser.add_argument(
         "--adb",
         default=base.adb_path,
-        help=f"Đường dẫn lệnh ADB (mặc định: {base.adb_path}).",
+        help=f"Path to ADB executable (default: {base.adb_path}).",
     )
     parser.add_argument(
         "--data-dir",
         default=str(base.data_dir),
-        help=f"Thư mục lưu cài đặt và lịch sử (mặc định: {base.data_dir}).",
+        help=f"Directory for settings and history (default: {base.data_dir}).",
     )
     parser.add_argument(
         "--headless",
         action="store_true",
-        help="Không đọc lệnh từ bàn phím; chỉ chạy dashboard và tiến trình nền.",
+        help="Run without interactive console input; run dashboard and background service only.",
     )
     parser.add_argument(
         "--open",
         action="store_true",
         dest="open_browser",
-        help="Tự mở dashboard trong trình duyệt mặc định.",
+        help="Automatically open the dashboard in default browser.",
     )
     parser.add_argument(
         "--version", action="version", version=f"{APP_NAME} {APP_VERSION}"
@@ -117,20 +118,27 @@ def validate_config(config: AppConfig, parser: argparse.ArgumentParser) -> None:
         parser.error("--proxy-port và --control-port phải khác nhau.")
 
 
-def print_banner(server: DashboardServer, config: AppConfig, demo: bool) -> None:
+def print_banner(
+    server: DashboardServer, config: AppConfig, demo: bool, lang: str = "en"
+) -> None:
+    dash_label = get_message("cli.banner.dashboard", lang).ljust(12)
+    proxy_label = get_message("cli.banner.proxy", lang).ljust(12)
+    data_label = get_message("cli.banner.data", lang).ljust(12)
+    commands_text = get_message("cli.banner.commands", lang)
     print("=" * 68)
     print(f"  {APP_NAME} · v{APP_VERSION}" + ("  [DEMO]" if demo else ""))
     print("=" * 68)
-    print(f"  Dashboard   : {server.url}")
-    print(f"  Proxy HTTP  : {config.proxy_url}")
-    print(f"  Dữ liệu     : {config.data_dir}")
+    print(f"  {dash_label}: {server.url}")
+    print(f"  {proxy_label}: {config.proxy_url}")
+    print(f"  {data_label}: {config.data_dir}")
     print("-" * 68)
-    print("  Lệnh: r = xoay IP · c = kiểm tra kết nối · q = thoát")
+    print(f"  {commands_text}")
     print("=" * 68, flush=True)
 
 
 def console_loop(service: MobileProxyService, stop_event: threading.Event) -> None:
     while not stop_event.is_set():
+        lang = service.language
         try:
             command = input("proxy> ").strip().lower()
         except (EOFError, KeyboardInterrupt):
@@ -141,19 +149,19 @@ def console_loop(service: MobileProxyService, stop_event: threading.Event) -> No
         if command == "r":
             try:
                 service.rotate(trigger="manual")
-                print("[*] Đã bắt đầu xoay IP. Theo dõi tiến trình trên dashboard.")
+                print(get_message("cli.rotate.started", lang))
             except ServiceError as exc:
                 print(f"[X] {exc}")
         elif command == "c":
             try:
                 service.refresh_network()
-                print("[OK] Đã cập nhật trạng thái kết nối.")
+                print(get_message("cli.check.updated", lang))
             except ServiceError as exc:
                 print(f"[X] {exc}")
         elif command in ("h", "help", "?"):
-            print("  r = xoay IP · c = kiểm tra kết nối · q = thoát")
+            print(f"  {get_message('cli.banner.commands', lang)}")
         elif command:
-            print("[!] Lệnh không hợp lệ. Gõ h để xem trợ giúp.")
+            print(get_message("cli.command.invalid", lang))
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -167,14 +175,20 @@ def main(argv: list[str] | None = None) -> int:
         demo=config.demo,
         time_scale=0.35 if config.demo else 1.0,
     )
+    if config.demo:
+        service.seed_demo_history()
     try:
         server = DashboardServer(service, config)
     except OSError as exc:
-        print(
-            f"[X] Không mở được dashboard tại {config.control_host}:{config.control_port}: {exc}",
-            file=sys.stderr,
+        lang = service.language
+        error_msg = get_message(
+            "cli.server_error",
+            lang,
+            host=config.control_host,
+            port=config.control_port,
+            error=exc,
         )
-        print("    Kiểm tra cổng đã bị chiếm hay chưa rồi thử lại.", file=sys.stderr)
+        print(error_msg, file=sys.stderr)
         return 1
 
     stop_event = threading.Event()
@@ -193,12 +207,12 @@ def main(argv: list[str] | None = None) -> int:
     try:
         service.start()
         server.start()
-        print_banner(server, config, config.demo)
+        print_banner(server, config, config.demo, lang=service.language)
         if args.open_browser:
             threading.Timer(0.6, lambda: webbrowser.open(server.url)).start()
 
         if args.headless or not sys.stdin.isatty():
-            print("[*] Chế độ headless. Nhấn Ctrl+C để dừng.", flush=True)
+            print(get_message("cli.headless", service.language), flush=True)
             while not stop_event.is_set():
                 time.sleep(0.5)
         else:
@@ -206,10 +220,10 @@ def main(argv: list[str] | None = None) -> int:
     except KeyboardInterrupt:
         pass
     finally:
-        print("\n[*] Đang dừng ứng dụng...", flush=True)
+        print(get_message("cli.stopping", service.language), flush=True)
         server.stop()
         service.stop(cleanup=True)
-        print("[OK] Đã dừng.", flush=True)
+        print(get_message("cli.stopped", service.language), flush=True)
     return 0
 
 

@@ -7,6 +7,7 @@ import re
 import tempfile
 import time
 import unittest
+from http.client import HTTPConnection
 from pathlib import Path
 from urllib.error import HTTPError
 from urllib.request import Request, urlopen
@@ -154,6 +155,86 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(status, 422)
         self.assertEqual(payload["error"]["code"], "validation_error")
 
+    def test_settings_patch_updates_language(self) -> None:
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "vi"}
+        )
+        self.assertEqual(status, 200)
+        self.assertTrue(payload["ok"])
+        self.assertEqual(payload["settings"]["language"], "vi")
+
+        status, settings = self.json_request("/api/settings")
+        self.assertEqual(status, 200)
+        self.assertEqual(settings["settings"]["language"], "vi")
+
+        status, logs = self.json_request("/api/logs?after=0&limit=500")
+        self.assertEqual(status, 200)
+        self.assertTrue(
+            any("Đã đổi ngôn ngữ" in item["message"] for item in logs["items"]),
+            "PATCH should record a Vietnamese language-change log",
+        )
+
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "fr"}
+        )
+        self.assertEqual(status, 422)
+        self.assertEqual(payload["error"]["code"], "validation_error")
+        self.assertEqual(payload["error"]["message"], "Ngôn ngữ không hợp lệ.")
+
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "en"}
+        )
+        self.assertEqual(status, 200)
+        self.assertEqual(payload["settings"]["language"], "en")
+
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "invalid"}
+        )
+        self.assertEqual(status, 422)
+        self.assertEqual(payload["error"]["code"], "validation_error")
+        self.assertEqual(payload["error"]["message"], "Invalid language.")
+
+        status, payload = self.json_request("/api/rotate", method="PATCH", payload={})
+        self.assertEqual(status, 404)
+        self.assertEqual(payload["error"]["code"], "not_found")
+
+    def test_patch_with_body_keeps_connection_in_sync(self) -> None:
+        body = json.dumps({"unexpected": True})
+        connection = HTTPConnection("127.0.0.1", self.port, timeout=10)
+        try:
+            connection.request(
+                "PATCH",
+                "/api/rotate",
+                body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            response = connection.getresponse()
+            self.assertEqual(response.status, 404)
+            payload = json.loads(response.read())
+            self.assertEqual(payload["error"]["code"], "not_found")
+
+            connection.request("GET", "/api/settings")
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertIn("language", json.loads(response.read())["settings"])
+
+            connection.request(
+                "PATCH",
+                "/missing-page",
+                body=body,
+                headers={"Content-Type": "application/json"},
+            )
+            response = connection.getresponse()
+            self.assertEqual(response.status, 404)
+            response.read()
+
+            connection.request("GET", "/api/health")
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertTrue(json.loads(response.read())["ok"])
+        finally:
+            connection.close()
+
     def test_rotation_endpoint_and_history(self) -> None:
         status, payload = self.json_request("/api/rotate", method="POST", payload={})
         self.assertEqual(status, 202)
@@ -216,6 +297,26 @@ class DashboardServerTests(unittest.TestCase):
         status, payload = self.json_request("/api/nope")
         self.assertEqual(status, 404)
         self.assertEqual(payload["error"]["code"], "not_found")
+
+    def test_print_banner_bilingual(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+        from auto_mobile_proxy import print_banner
+
+        buffer_en = io.StringIO()
+        with redirect_stdout(buffer_en):
+            print_banner(self.server, self.config, demo=True, lang="en")
+        output_en = buffer_en.getvalue()
+        self.assertIn("Data dir", output_en)
+        self.assertIn("Commands: r = rotate IP", output_en)
+        self.assertIn("[DEMO]", output_en)
+
+        buffer_vi = io.StringIO()
+        with redirect_stdout(buffer_vi):
+            print_banner(self.server, self.config, demo=False, lang="vi")
+        output_vi = buffer_vi.getvalue()
+        self.assertIn("Dữ liệu", output_vi)
+        self.assertIn("Lệnh: r = xoay IP", output_vi)
 
 
 if __name__ == "__main__":

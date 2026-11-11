@@ -2,13 +2,137 @@
 
 from __future__ import annotations
 
+import re
 import tempfile
 import unittest
 from pathlib import Path
 
 from backend.mobile_proxy.adb import parse_dumpsys_battery, parse_proc_net_dev
 from backend.mobile_proxy.config import AppConfig
+from backend.mobile_proxy.i18n import MESSAGES, get_message
 from backend.mobile_proxy.service import MobileProxyService, NotConnectedError
+from backend.mobile_proxy.storage import SettingsStore
+
+
+class _StopAfterFirstWait:
+    """Deterministic stand-in for ``threading.Event`` in ``_monitor_loop``.
+
+    The monitor loop checks ``is_set()`` before each pass and blocks on
+    ``wait()`` at the end, so this lets a test run exactly one pass.
+    """
+
+    def __init__(self) -> None:
+        self._done = False
+
+    def is_set(self) -> bool:
+        return self._done
+
+    def set(self) -> None:
+        self._done = True
+
+    def wait(self, timeout: float | None = None) -> bool:
+        self._done = True
+        return True
+
+
+class I18nCatalogTests(unittest.TestCase):
+    def test_catalog_has_matching_keys_for_both_languages(self) -> None:
+        self.assertEqual(set(MESSAGES["en"]), set(MESSAGES["vi"]))
+
+    def test_catalog_placeholders_match_between_languages(self) -> None:
+        pattern = re.compile(r"\{(\w+)\}")
+        for key, english in MESSAGES["en"].items():
+            self.assertEqual(
+                set(pattern.findall(english)),
+                set(pattern.findall(MESSAGES["vi"][key])),
+                f"placeholder mismatch for {key}",
+            )
+
+    def test_get_message_returns_localized_text(self) -> None:
+        self.assertEqual(get_message("adb.found", "en"), "ADB found.")
+        self.assertEqual(get_message("adb.found", "vi"), "Đã tìm thấy ADB.")
+
+    def test_get_message_formats_placeholders(self) -> None:
+        self.assertEqual(
+            get_message("proxy.starting", "en", port=8080),
+            "Starting the proxy daemon on port 8080...",
+        )
+        self.assertIn("8080", get_message("proxy.starting", "vi", port=8080))
+
+    def test_get_message_falls_back_to_english(self) -> None:
+        self.assertEqual(get_message("adb.found", "fr"), "ADB found.")
+        self.assertEqual(get_message("missing.key", "vi"), "missing.key")
+
+
+class ServiceLanguageTests(unittest.TestCase):
+    def _make_service(self, language: str | None) -> MobileProxyService:
+        temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(temporary.cleanup)
+        data_dir = Path(temporary.name)
+        if language is not None:
+            SettingsStore(data_dir / "settings.json").save({"language": language})
+        config = AppConfig(
+            proxy_port=18080,
+            control_port=18081,
+            data_dir=data_dir,
+            demo=True,
+        )
+        service = MobileProxyService(
+            config,
+            demo=True,
+            echo_logs=False,
+            time_scale=0.01,
+        )
+        self.addCleanup(service.stop)
+        return service
+
+    @staticmethod
+    def _messages(service: MobileProxyService) -> list[str]:
+        return [item["message"] for item in service.events.snapshot()["items"]]
+
+    def _start_and_emit_adb_found(self, service: MobileProxyService) -> None:
+        service.start(monitor=False, auto_rotate=False)
+        service._adb_missing_logged = True  # noqa: SLF001 - simulate recovery
+        service._stop = _StopAfterFirstWait()  # noqa: SLF001 - one monitor pass
+        service._monitor_loop()  # noqa: SLF001 - one deterministic pass
+
+    def test_english_service_logs_english_events(self) -> None:
+        service = self._make_service("en")
+
+        self._start_and_emit_adb_found(service)
+
+        messages = self._messages(service)
+        self.assertIn("ADB found.", messages)
+        self.assertIn("Stopping existing proxy daemon...", messages)
+        self.assertTrue(
+            any(item.startswith("Starting 4G Mobile Proxy") for item in messages)
+        )
+
+    def test_vietnamese_service_logs_vietnamese_events(self) -> None:
+        service = self._make_service("vi")
+
+        self._start_and_emit_adb_found(service)
+
+        messages = self._messages(service)
+        self.assertIn("Đã tìm thấy ADB.", messages)
+        self.assertIn("Đang dừng daemon proxy cũ...", messages)
+        self.assertTrue(
+            any(item.startswith("Khởi động 4G Mobile Proxy") for item in messages)
+        )
+
+    def test_language_defaults_to_english(self) -> None:
+        service = self._make_service(None)
+
+        self.assertEqual(service.language, "en")
+
+    def test_update_settings_switches_active_language(self) -> None:
+        service = self._make_service("en")
+
+        service.update_settings({"language": "vi"})
+        service.clear_logs()
+
+        self.assertEqual(service.language, "vi")
+        self.assertIn("Đã xóa nhật ký hoạt động.", self._messages(service))
 
 
 class DemoServiceTests(unittest.TestCase):
@@ -97,6 +221,21 @@ class DemoServiceTests(unittest.TestCase):
 
         last_id = self.service.clear_logs()["last_id"]
         self.assertEqual(self.service.events.snapshot(after=last_id)["items"], [])
+
+    def test_seed_demo_history(self) -> None:
+        fresh_service = MobileProxyService(
+            self.config,
+            demo=True,
+            echo_logs=False,
+            time_scale=0.01,
+        )
+        self.assertEqual(len(fresh_service.history), 0)
+        fresh_service.seed_demo_history()
+        self.assertGreaterEqual(len(fresh_service.history), 4)
+        self.assertEqual(fresh_service.history[0]["status"], "success")
+        # Calling again does not duplicate
+        fresh_service.seed_demo_history()
+        self.assertEqual(len(fresh_service.history), 4)
 
     def test_reconnect_and_restart_are_rejected_without_device(self) -> None:
         disconnected = MobileProxyService(
@@ -215,6 +354,16 @@ Current Battery Service state:
             self.assertTrue(adb.is_forwarded("serial123", 8080))
             self.assertFalse(adb.is_forwarded("serial123", 9090))
             self.assertFalse(adb.is_forwarded("serial123", 8081))
+
+    def test_resolve_adb_path(self) -> None:
+        from unittest.mock import patch
+        from backend.mobile_proxy.adb import resolve_adb_path
+
+        with patch("shutil.which", return_value="/custom/bin/adb"):
+            self.assertEqual(resolve_adb_path("adb"), "/custom/bin/adb")
+
+        with patch("shutil.which", return_value=None), patch("pathlib.Path.is_file", return_value=False):
+            self.assertEqual(resolve_adb_path("adb"), "adb")
 
 
     def test_parse_proc_net_dev(self) -> None:

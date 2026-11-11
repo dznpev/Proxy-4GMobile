@@ -9,15 +9,18 @@ import {
   CardHeader,
   CardTitle,
 } from '../components/ui/card';
+import { FlagIcon } from '../components/ui/FlagIcon';
 import { Input } from '../components/ui/input';
 import { Label } from '../components/ui/label';
 import { Radio, RadioGroup } from '../components/ui/radio-group';
 import { Switch } from '../components/ui/switch';
 import { useDashboard } from '../app/providers/DashboardProvider';
+import { useI18n } from '../app/providers/I18nProvider';
 import { useToast } from '../app/providers/ToastProvider';
 import { DEFAULT_SETTINGS, DEFAULT_SETTINGS_OPTIONS } from '../lib/constants';
 import { errorMessage } from '../lib/errors';
 import { formatClock } from '../lib/format';
+import { isLocale, translate } from '../lib/i18n';
 
 const MIN_INTERVAL = DEFAULT_SETTINGS_OPTIONS.min_interval_min;
 const MAX_INTERVAL = DEFAULT_SETTINGS_OPTIONS.max_interval_min;
@@ -49,13 +52,14 @@ function isSameForm(left: SettingsForm, right: SettingsForm): boolean {
 
 export function SettingsPage() {
   const { status, settings, now, saveSettings, resettingUsage, resetUsage } = useDashboard();
+  const { locale, setLocale, t } = useI18n();
   const { showToast } = useToast();
   const [form, setForm] = useState<SettingsForm>(() =>
     toForm(settings ?? DEFAULT_SETTINGS),
   );
   const [dirty, setDirty] = useState(false);
   const [saving, setSaving] = useState(false);
-  const [savedText, setSavedText] = useState('');
+  const [savedAt, setSavedAt] = useState<number | null>(null);
   const [error, setError] = useState('');
   const [intervalError, setIntervalError] = useState('');
   const [limitError, setLimitError] = useState('');
@@ -87,7 +91,7 @@ export function SettingsPage() {
   const markDirty = () => {
     if (!dirty) {
       setDirty(true);
-      setSavedText('');
+      setSavedAt(null);
     }
     setError('');
     setIntervalError('');
@@ -104,7 +108,7 @@ export function SettingsPage() {
       interval <= MAX_INTERVAL;
 
     if (!valid) {
-      setIntervalError(`Nhập số phút từ ${MIN_INTERVAL} đến ${MAX_INTERVAL}.`);
+      setIntervalError(t('settings.intervalError', { min: MIN_INTERVAL, max: MAX_INTERVAL }));
       intervalRef.current?.focus();
       return null;
     }
@@ -113,7 +117,7 @@ export function SettingsPage() {
     const limit = Number(rawLimit);
     const limitValid = rawLimit !== '' && Number.isFinite(limit) && limit >= 0 && limit <= 1000;
     if (!limitValid) {
-      setLimitError('Nhập số GB từ 0 đến 1000 (0 = không giới hạn).');
+      setLimitError(t('settings.dataLimitError'));
       limitRef.current?.focus();
       return null;
     }
@@ -142,12 +146,12 @@ export function SettingsPage() {
       const next = response.settings ?? payload;
       setForm(toForm(next));
       setDirty(false);
-      setSavedText(`Đã lưu lúc ${formatClock(now)}`);
-      showToast('success', 'Đã lưu cài đặt', 'Lịch xoay IP đã được cập nhật.');
+      setSavedAt(now);
+      showToast('success', t('toasts.settingsSaved.title'), t('toasts.settingsSaved.message'));
     } catch (caught) {
-      const message = errorMessage(caught);
+      const message = errorMessage(caught, t('errors.generic'), t);
       setError(message);
-      showToast('error', 'Chưa lưu được cài đặt', message);
+      showToast('error', t('toasts.settingsSaveFailed.title'), message);
     } finally {
       setSaving(false);
     }
@@ -156,20 +160,24 @@ export function SettingsPage() {
   const handleReset = () => {
     setForm(toForm(DEFAULT_SETTINGS));
     setDirty(true);
-    setSavedText('');
+    setSavedAt(null);
     setError('');
     setIntervalError('');
-    showToast(
-      'info',
-      'Đã khôi phục mặc định',
-      'Bấm “Lưu cài đặt” để áp dụng thay đổi.',
-    );
+    showToast('info', t('toasts.defaultsRestored.title'), t('toasts.defaultsRestored.message'));
     intervalRef.current?.focus();
   };
 
   const handleIntervalBlur = () => {
     if (!dirty) return;
     readForm();
+  };
+
+  const handleLanguageChange = (value: string) => {
+    if (!isLocale(value) || value === locale) return;
+    void setLocale(value);
+    // The toast is rendered after the locale switches, so translate it with the
+    // newly selected language instead of the current render's translator.
+    showToast('success', translate(value, 'settings.languageSaved'));
   };
 
   const badgeEnabled = Boolean(form.auto_rotate_enabled);
@@ -179,11 +187,9 @@ export function SettingsPage() {
       <div className="page-lead">
         <div>
           <h2 className="page-section-title" id="settings-page-title">
-            Cài đặt
+            {t('settings.title')}
           </h2>
-          <p className="page-lead-text">
-            Cấu hình lịch xoay IP và phương thức ngắt kết nối. Thay đổi được lưu cục bộ.
-          </p>
+          <p className="page-lead-text">{t('settings.lead')}</p>
         </div>
       </div>
 
@@ -191,15 +197,15 @@ export function SettingsPage() {
         <Card render={<article />} aria-labelledby="settings-auto-title">
           <CardHeader>
             <div>
-              <p className="eyebrow">Lịch</p>
+              <p className="eyebrow">{t('settings.autoEyebrow')}</p>
               <CardTitle render={<h2 />} id="settings-auto-title">
-                Tự động xoay IP
+                {t('settings.autoTitle')}
               </CardTitle>
             </div>
             <CardAction>
               <Badge
                 tone={badgeEnabled ? 'success' : 'neutral'}
-                label={badgeEnabled ? 'Bật' : 'Tắt'}
+                label={badgeEnabled ? t('common.on') : t('common.off')}
               />
             </CardAction>
           </CardHeader>
@@ -211,10 +217,10 @@ export function SettingsPage() {
                 id="setting-auto-label"
                 htmlFor="setting-auto"
               >
-                Tự động xoay IP
+                {t('settings.autoLabel')}
               </Label>
               <p className="meta-text" id="setting-auto-help">
-                Khi bật, proxy tự xoay theo chu kỳ nếu thiết bị đang kết nối.
+                {t('settings.autoHelp')}
               </p>
             </div>
             <Switch
@@ -231,7 +237,7 @@ export function SettingsPage() {
 
           <div className="form-grid">
             <div className="field">
-              <Label htmlFor="setting-interval">Chu kỳ xoay (phút)</Label>
+              <Label htmlFor="setting-interval">{t('settings.intervalLabel')}</Label>
               <Input
                 ref={intervalRef}
                 id="setting-interval"
@@ -254,7 +260,7 @@ export function SettingsPage() {
                 onBlur={handleIntervalBlur}
               />
               <p className="help-text" id="setting-interval-help">
-                Từ {MIN_INTERVAL} đến {MAX_INTERVAL} phút. Mặc định 30 phút.
+                {t('settings.intervalHelp', { min: MIN_INTERVAL, max: MAX_INTERVAL })}
               </p>
               <p
                 className="field-error"
@@ -267,7 +273,7 @@ export function SettingsPage() {
             </div>
 
             <fieldset className="field field-radio-group">
-              <legend id="rotate-method-label">Phương thức xoay</legend>
+              <legend id="rotate-method-label">{t('settings.methodLabel')}</legend>
               <RadioGroup
                 name="rotate-method"
                 value={form.rotate_method}
@@ -288,9 +294,11 @@ export function SettingsPage() {
                     aria-describedby="rotate-method-airplane-help"
                   />
                   <span>
-                    <strong id="rotate-method-airplane-label">Chế độ máy bay</strong>
+                    <strong id="rotate-method-airplane-label">
+                      {t('settings.methodAirplane')}
+                    </strong>
                     <small id="rotate-method-airplane-help">
-                      Ổn định hơn, ngắt 4G khoảng 5–10 giây.
+                      {t('settings.methodAirplaneHelp')}
                     </small>
                   </span>
                 </label>
@@ -302,17 +310,15 @@ export function SettingsPage() {
                     aria-describedby="rotate-method-data-help"
                   />
                   <span>
-                    <strong id="rotate-method-data-label">Dữ liệu di động</strong>
-                    <small id="rotate-method-data-help">
-                      Tắt/mở dữ liệu; phù hợp một số nhà mạng.
-                    </small>
+                    <strong id="rotate-method-data-label">{t('settings.methodData')}</strong>
+                    <small id="rotate-method-data-help">{t('settings.methodDataHelp')}</small>
                   </span>
                 </label>
               </RadioGroup>
             </fieldset>
 
             <div className="field">
-              <Label htmlFor="setting-data-limit">Giới hạn dung lượng 4G mỗi ngày (GB)</Label>
+              <Label htmlFor="setting-data-limit">{t('settings.dataLimitLabel')}</Label>
               <Input
                 ref={limitRef}
                 id="setting-data-limit"
@@ -333,7 +339,7 @@ export function SettingsPage() {
                 }}
               />
               <p className="help-text" id="setting-limit-help">
-                Ví dụ: 4 (gói 4GB/ngày), 10 (gói 10GB/ngày). Đặt 0 nếu là gói không giới hạn dung lượng.
+                {t('settings.dataLimitHelp')}
               </p>
               {limitError && (
                 <p className="error-text" id="setting-limit-error" role="alert">
@@ -344,13 +350,13 @@ export function SettingsPage() {
           </div>
 
           <div className="inline-alert inline-alert-danger" role="alert" hidden={!error}>
-            <strong>Chưa lưu được cài đặt</strong>
+            <strong>{t('settings.saveErrorTitle')}</strong>
             <p>{error}</p>
           </div>
 
           <CardFooter>
             <Button type="submit" loading={saving} disabled={!dirty}>
-              Lưu cài đặt
+              {t('settings.save')}
             </Button>
             <Button
               variant="ghost"
@@ -358,33 +364,81 @@ export function SettingsPage() {
               disabled={saving}
               onClick={handleReset}
             >
-              Khôi phục mặc định
+              {t('settings.restoreDefaults')}
             </Button>
             <span className="meta-text" role="status">
-              {dirty ? 'Chưa lưu thay đổi' : savedText}
+              {dirty
+                ? t('settings.unsaved')
+                : savedAt !== null
+                  ? t('settings.savedAt', { time: formatClock(savedAt) })
+                  : ''}
             </span>
           </CardFooter>
         </Card>
       </form>
 
+      <Card render={<article />} aria-labelledby="settings-language-title" className="mb-4">
+        <CardHeader>
+          <div>
+            <p className="eyebrow">{t('settings.languageEyebrow')}</p>
+            <CardTitle render={<h2 />} id="settings-language-title">
+              {t('settings.languageTitle')}
+            </CardTitle>
+          </div>
+        </CardHeader>
+        <div className="px-5 pb-5 pt-1">
+          <p className="meta-text mb-4">{t('settings.languageDescription')}</p>
+          <RadioGroup
+            className="flex flex-row flex-wrap items-center gap-3 sm:gap-4"
+            name="settings-language"
+            value={locale}
+            aria-labelledby="settings-language-title"
+            onValueChange={handleLanguageChange}
+          >
+            <label className="inline-flex min-h-[42px] cursor-pointer items-center gap-2.5 rounded-lg border border-border px-4 py-2 transition-colors hover:bg-accent/60 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-accent">
+              <Radio
+                value="en"
+                aria-labelledby="settings-language-en-label"
+              />
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
+                <FlagIcon code="us" />
+                <span id="settings-language-en-label">
+                  {t('settings.languageEnglish')}
+                </span>
+              </span>
+            </label>
+            <label className="inline-flex min-h-[42px] cursor-pointer items-center gap-2.5 rounded-lg border border-border px-4 py-2 transition-colors hover:bg-accent/60 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-accent">
+              <Radio
+                value="vi"
+                aria-labelledby="settings-language-vi-label"
+              />
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
+                <FlagIcon code="vn" />
+                <span id="settings-language-vi-label">
+                  {t('settings.languageVietnamese')}
+                </span>
+              </span>
+            </label>
+          </RadioGroup>
+        </div>
+      </Card>
+
       <Card render={<article />} aria-labelledby="settings-data-title" className="mb-4">
         <CardHeader>
           <div>
-            <p className="eyebrow">Dữ liệu di động</p>
+            <p className="eyebrow">{t('settings.dataEyebrow')}</p>
             <CardTitle render={<h2 />} id="settings-data-title">
-              Quản lý lưu lượng data 4G
+              {t('settings.dataTitle')}
             </CardTitle>
           </div>
         </CardHeader>
         <div className="px-5 py-2">
-          <p className="meta-text mb-4">
-            Hệ thống đọc dung lượng truyền tải từ card mạng di động Android (/proc/net/dev) và tự động cộng dồn theo ngày.
-          </p>
+          <p className="meta-text mb-4">{t('settings.dataDescription')}</p>
           <div className="flex items-center justify-between border-t border-border pt-4">
             <div>
-              <strong className="block text-sm">Đặt lại bộ đếm hôm nay</strong>
+              <strong className="block text-sm">{t('settings.resetTitle')}</strong>
               <span className="text-xs text-(--text-secondary)">
-                Xóa số liệu nhận/gửi đã ghi nhận trong ngày về 0 (hữu ích khi bạn vừa gia hạn gói mới).
+                {t('settings.resetDescription')}
               </span>
             </div>
             <Button
@@ -395,7 +449,7 @@ export function SettingsPage() {
               disabled={resettingUsage}
               onClick={() => void resetUsage()}
             >
-              Đặt lại hôm nay
+              {t('settings.resetToday')}
             </Button>
           </div>
         </div>
@@ -405,9 +459,9 @@ export function SettingsPage() {
         <Card render={<article />} aria-labelledby="api-title">
           <CardHeader>
             <div>
-              <p className="eyebrow">Tích hợp</p>
+              <p className="eyebrow">{t('settings.apiEyebrow')}</p>
               <CardTitle render={<h2 />} id="api-title">
-                API cục bộ
+                {t('settings.apiTitle')}
               </CardTitle>
             </div>
           </CardHeader>
@@ -416,26 +470,24 @@ export function SettingsPage() {
               <dt>
                 <code>GET /api/status</code>
               </dt>
-              <dd>Toàn bộ trạng thái dashboard.</dd>
+              <dd>{t('settings.apiStatusDescription')}</dd>
             </div>
             <div>
               <dt>
                 <code>POST /api/rotate</code>
               </dt>
-              <dd>Bắt đầu xoay IP, trả về ngay.</dd>
+              <dd>{t('settings.apiRotateDescription')}</dd>
             </div>
           </dl>
-          <p className="meta-text">
-            API chỉ lắng nghe trên loopback và không yêu cầu xác thực.
-          </p>
+          <p className="meta-text">{t('settings.apiNote')}</p>
         </Card>
 
         <Card render={<article />} aria-labelledby="about-title">
           <CardHeader>
             <div>
-              <p className="eyebrow">Hệ thống</p>
+              <p className="eyebrow">{t('settings.aboutEyebrow')}</p>
               <CardTitle render={<h2 />} id="about-title">
-                Về ứng dụng
+                {t('settings.aboutTitle')}
               </CardTitle>
             </div>
             <CardAction>
@@ -444,25 +496,23 @@ export function SettingsPage() {
           </CardHeader>
           <dl className="detail-list detail-list-compact">
             <div>
-              <dt>Phiên bản</dt>
+              <dt>{t('settings.version')}</dt>
               <dd>{version}</dd>
             </div>
             <div>
-              <dt>Dashboard</dt>
+              <dt>{t('settings.dashboard')}</dt>
               <dd className="mono">{dashboardUrl}</dd>
             </div>
             <div>
-              <dt>Proxy</dt>
+              <dt>{t('settings.proxy')}</dt>
               <dd className="mono">{proxyUrl}</dd>
             </div>
             <div>
-              <dt>Thư mục dữ liệu</dt>
+              <dt>{t('settings.dataDir')}</dt>
               <dd className="mono break-all">{dataDir}</dd>
             </div>
           </dl>
-          <p className="meta-text">
-            Zero-app: daemon được đẩy tới <code>/data/local/tmp</code>, không cài APK.
-          </p>
+          <p className="meta-text">{t('settings.aboutNote')}</p>
         </Card>
       </div>
     </section>

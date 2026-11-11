@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { Icon } from '../components/Icon';
 import { HistoryRows } from '../components/data/HistoryRows';
 import { useDashboard } from '../app/providers/DashboardProvider';
+import { useI18n } from '../app/providers/I18nProvider';
 import {
   Empty,
   EmptyDescription,
@@ -33,10 +34,10 @@ import { Card, CardFooter } from '../components/ui/card';
 
 type HistoryFilter = 'all' | 'success' | 'failed';
 
-const FILTERS: Array<{ value: HistoryFilter; label: string }> = [
-  { value: 'all', label: 'Tất cả' },
-  { value: 'success', label: 'Thành công' },
-  { value: 'failed', label: 'Thất bại' },
+const FILTERS: Array<{ value: HistoryFilter; labelKey: string }> = [
+  { value: 'all', labelKey: 'history.filterAll' },
+  { value: 'success', labelKey: 'history.filterSuccess' },
+  { value: 'failed', labelKey: 'history.filterFailed' },
 ];
 
 const PAGE_SIZES = [10, 25, 50, 100] as const;
@@ -49,6 +50,7 @@ const PAGE_SIZE_ITEMS = PAGE_SIZES.map((size) => ({
 export function HistoryPage() {
   const { history, historyLoaded, clearingHistory, clearHistory, startRotation } =
     useDashboard();
+  const { t } = useI18n();
   const [filter, setFilter] = useState<HistoryFilter>('all');
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState('10');
@@ -80,17 +82,15 @@ export function HistoryPage() {
       <div className="page-lead">
         <div>
           <h2 className="page-section-title" id="history-page-title">
-            Lịch sử xoay IP
+            {t('history.title')}
           </h2>
-          <p className="page-lead-text">
-            Mỗi lần xoay được ghi lại cùng IP trước, IP mới, nhà mạng và thời lượng.
-          </p>
+          <p className="page-lead-text">{t('history.lead')}</p>
         </div>
       </div>
 
       <div className="toolbar">
         <SegmentedControl
-          aria-label="Lọc theo trạng thái xoay"
+          aria-label={t('history.filterLabel')}
           className="max-sm:w-full"
           role="group"
         >
@@ -105,15 +105,15 @@ export function HistoryPage() {
                 setPage(1);
               }}
             >
-              {item.label}
+              {t(item.labelKey)}
             </SegmentedControlItem>
           ))}
         </SegmentedControl>
         <div className="toolbar-end">
           <span className="meta-text">
             {filtered
-              ? `${rows.length} / ${history.length} lần xoay`
-              : `${history.length} lần xoay`}
+              ? t('history.countFiltered', { shown: rows.length, total: history.length })
+              : t('history.count', { count: history.length })}
           </span>
           <Button
             variant="outline"
@@ -122,14 +122,14 @@ export function HistoryPage() {
             onClick={() => void clearHistory()}
           >
             {clearingHistory ? null : <Icon name="trash" />}
-            <span>Xóa lịch sử</span>
+            <span>{t('history.clear')}</span>
           </Button>
         </div>
       </div>
 
       <Card render={<article />} aria-labelledby="history-table-title">
         <h2 className="visually-hidden" id="history-table-title">
-          Bảng lịch sử xoay IP
+          {t('history.tableTitle')}
         </h2>
         {empty ? (
           <Empty>
@@ -138,17 +138,17 @@ export function HistoryPage() {
             </EmptyMedia>
             <EmptyHeader>
               <EmptyTitle>
-                {filtered ? 'Không có lần xoay phù hợp' : 'Chưa có lần xoay IP nào'}
+                {filtered ? t('history.emptyFilteredTitle') : t('history.emptyTitle')}
               </EmptyTitle>
               <EmptyDescription>
                 {filtered
-                  ? 'Thử chọn bộ lọc khác để xem toàn bộ lịch sử.'
-                  : 'Xoay IP đầu tiên để bắt đầu ghi lịch sử.'}
+                  ? t('history.emptyFilteredDescription')
+                  : t('history.emptyDescription')}
               </EmptyDescription>
             </EmptyHeader>
             {filtered ? null : (
               <Button className="mt-1" onClick={() => void startRotation()}>
-                Xoay IP ngay
+                {t('history.rotateNow')}
               </Button>
             )}
           </Empty>
@@ -156,17 +156,17 @@ export function HistoryPage() {
           <>
             <Table className="min-w-[780px]">
               <TableCaption className="visually-hidden">
-                Lịch sử xoay IP, mới nhất trước
+                {t('history.tableCaption')}
               </TableCaption>
               <TableHeader>
                 <TableRow>
-                  <TableHead scope="col">Thời gian</TableHead>
-                  <TableHead scope="col">Kiểu</TableHead>
-                  <TableHead scope="col">IP trước</TableHead>
-                  <TableHead scope="col">IP mới</TableHead>
-                  <TableHead scope="col">Nhà mạng</TableHead>
-                  <TableHead scope="col">Thời lượng</TableHead>
-                  <TableHead scope="col">Trạng thái</TableHead>
+                  <TableHead scope="col">{t('history.colTime')}</TableHead>
+                  <TableHead scope="col">{t('history.colTrigger')}</TableHead>
+                  <TableHead scope="col">{t('history.colOldIp')}</TableHead>
+                  <TableHead scope="col">{t('history.colNewIp')}</TableHead>
+                  <TableHead scope="col">{t('history.colIsp')}</TableHead>
+                  <TableHead scope="col">{t('history.colDuration')}</TableHead>
+                  <TableHead scope="col">{t('history.colStatus')}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -177,21 +177,25 @@ export function HistoryPage() {
             {rows.length > 0 ? (
               <CardFooter
                 className="max-[640px]:flex-col max-[640px]:items-start"
-                render={<nav aria-label="Phân trang lịch sử" />}
+                render={<nav aria-label={t('history.paginationLabel')} />}
               >
                 <div className="flex flex-wrap items-center gap-3">
                   <span
                     className="text-sm text-muted-foreground"
                     aria-live="polite"
                   >
-                    {rangeStart}–{rangeEnd} / {rows.length} lần xoay
+                    {t('history.range', {
+                      start: rangeStart,
+                      end: rangeEnd,
+                      total: rows.length,
+                    })}
                   </span>
                   <div className="flex items-center gap-1.5">
                     <span
                       className="whitespace-nowrap text-sm text-muted-foreground"
                       id="history-page-size-label"
                     >
-                      Số dòng
+                      {t('history.pageSize')}
                     </span>
                     <Select
                       items={PAGE_SIZE_ITEMS}
@@ -223,12 +227,12 @@ export function HistoryPage() {
 
                 <div className="flex items-center gap-2">
                   <span className="text-sm text-muted-foreground">
-                    Trang {currentPage} / {totalPages}
+                    {t('history.pageOf', { page: currentPage, total: totalPages })}
                   </span>
                   <Button
                     variant="outline"
                     size="icon-sm"
-                    aria-label="Trang trước"
+                    aria-label={t('history.previousPage')}
                     disabled={currentPage === 1}
                     onClick={() => setPage(Math.max(1, currentPage - 1))}
                     className="pointer-coarse:min-h-11 pointer-coarse:min-w-11"
@@ -238,7 +242,7 @@ export function HistoryPage() {
                   <Button
                     variant="outline"
                     size="icon-sm"
-                    aria-label="Trang sau"
+                    aria-label={t('history.nextPage')}
                     disabled={currentPage === totalPages}
                     onClick={() => setPage(Math.min(totalPages, currentPage + 1))}
                     className="pointer-coarse:min-h-11 pointer-coarse:min-w-11"

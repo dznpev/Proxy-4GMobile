@@ -17,6 +17,7 @@ import {
 import { NAV_ITEMS, ROUTES } from '../../lib/constants';
 import { deviceNavState, statusSummary } from '../../lib/status';
 import { useDashboard } from '../../app/providers/DashboardProvider';
+import { useI18n } from '../../app/providers/I18nProvider';
 import { cn } from '../../lib/utils';
 
 interface SidebarProps {
@@ -37,6 +38,7 @@ export function Sidebar({
   closeButtonRef,
 }: SidebarProps) {
   const { status, connection } = useDashboard();
+  const { t } = useI18n();
   const { pathname } = useLocation();
   const activeRoute = pathname.replace(/^\//, '') || 'overview';
   const app = status?.app;
@@ -53,10 +55,10 @@ export function Sidebar({
 
   const summary =
     connection === 'offline'
-      ? { tone: 'danger' as const, label: 'Mất kết nối dịch vụ' }
+      ? { tone: 'danger' as const, label: t('status.summary.serviceOffline'), icon: 'alert' }
       : connection === 'loading'
-        ? { tone: 'neutral' as const, label: 'Đang kết nối…' }
-        : statusSummary(status);
+        ? { tone: 'neutral' as const, label: t('status.summary.serviceConnecting'), icon: 'refresh' }
+        : statusSummary(status, t);
 
   const statusDotClass =
     connection === 'offline' || summary.tone === 'danger'
@@ -85,7 +87,7 @@ export function Sidebar({
     <SidebarSurface
       ref={sidebarRef}
       id="sidebar"
-      aria-label="Điều hướng chính"
+      aria-label={t('sidebar.navigation')}
       inert={isMobile && !open}
       className={cn(
         isMobile
@@ -107,9 +109,9 @@ export function Sidebar({
             <Icon name="signal" className="size-5" />
           </span>
           <span className="flex min-w-0 flex-col leading-[1.25]">
-            <span className="text-xl font-semibold tracking-[-0.01em]">4G Proxy</span>
+            <span className="text-xl font-semibold tracking-[-0.01em]">{t('app.name')}</span>
             <span className="mt-px text-xs font-medium tracking-[0.055em] text-(--text-on-dark-subtle) uppercase">
-              Bảng điều khiển
+              {t('sidebar.brandSubtitle')}
             </span>
           </span>
         </Link>
@@ -120,7 +122,7 @@ export function Sidebar({
           variant="ghost"
           size="icon-sm"
           className="text-sidebar-foreground hover:bg-sidebar-accent hover:text-sidebar-accent-foreground focus-visible:ring-sidebar-ring focus-visible:ring-offset-sidebar min-[1025px]:hidden"
-          aria-label="Đóng điều hướng"
+          aria-label={t('sidebar.close')}
           onClick={onClose}
         >
           <Icon name="close" />
@@ -128,12 +130,14 @@ export function Sidebar({
       </SidebarHeader>
 
       <SidebarContent>
-        <nav aria-label="Không gian làm việc">
+        <nav aria-label={t('sidebar.workspaceNav')}>
           <SidebarGroup>
-            <SidebarGroupLabel>Không gian làm việc</SidebarGroupLabel>
+            <SidebarGroupLabel>{t('sidebar.workspace')}</SidebarGroupLabel>
             <SidebarMenu>
               {NAV_ITEMS.map((route) => {
                 const isActive = route === activeRoute;
+                const navKey = `nav.${route}`;
+                const navLabel = t(navKey);
                 return (
                   <SidebarMenuItem key={route}>
                     <SidebarMenuButton
@@ -145,7 +149,7 @@ export function Sidebar({
                         name={ROUTES[route].icon}
                         className="size-[17px] shrink-0 text-(--text-on-dark-subtle) transition-colors group-hover/menu-button:text-sidebar-accent-foreground group-data-[active=true]/menu-button:text-sidebar-accent-foreground"
                       />
-                      <span className="truncate">{ROUTES[route].title}</span>
+                      <span className="truncate">{navLabel}</span>
                       {route === 'device' ? (
                         <SidebarMenuBadge
                           id="nav-device-dot"
@@ -167,6 +171,7 @@ export function Sidebar({
         <div
           className="flex min-h-6 items-center gap-1.5 text-xs font-medium text-sidebar-foreground"
           id="sidebar-status"
+          title={t('sidebar.status')}
         >
           <span
             className={cn('size-1.5 flex-none rounded-full', statusDotClass)}
@@ -175,10 +180,10 @@ export function Sidebar({
           <span>{summary.label}</span>
         </div>
         <p className="text-xs leading-normal text-(--text-on-dark-subtle)">
-          v{version} · cổng {port}
+          {t('sidebar.version_port', { version, port })}
         </p>
         <p className="text-xs leading-normal text-(--text-on-dark-subtle)">
-          Dữ liệu lưu trên máy tính
+          {t('sidebar.data_local')}
         </p>
       </SidebarFooter>
     </SidebarSurface>

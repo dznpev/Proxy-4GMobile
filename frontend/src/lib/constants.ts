@@ -7,54 +7,62 @@ export interface RouteMeta {
   icon: string;
 }
 
+/**
+ * Route metadata. The title/eyebrow values are English fallbacks; views
+ * resolve `routes.<key>.title` / `routes.<key>.eyebrow` from the active
+ * catalog first so every locale stays in sync.
+ */
 export const ROUTES: Record<string, RouteMeta> = {
   overview: {
-    title: 'Tổng quan',
-    eyebrow: 'Bảng điều khiển',
-    documentTitle: 'Tổng quan',
+    title: 'Overview',
+    eyebrow: 'Dashboard',
+    documentTitle: 'Overview',
     icon: 'grid',
   },
   device: {
-    title: 'Thiết bị',
-    eyebrow: 'Phần cứng & ADB',
-    documentTitle: 'Thiết bị',
+    title: 'Device',
+    eyebrow: 'Hardware & ADB',
+    documentTitle: 'Device',
     icon: 'phone',
   },
   history: {
-    title: 'Lịch sử IP',
-    eyebrow: 'Hoạt động xoay',
-    documentTitle: 'Lịch sử IP',
+    title: 'IP History',
+    eyebrow: 'Rotation activity',
+    documentTitle: 'IP History',
     icon: 'history',
   },
   logs: {
-    title: 'Nhật ký',
-    eyebrow: 'Chẩn đoán',
-    documentTitle: 'Nhật ký',
+    title: 'Logs',
+    eyebrow: 'Diagnostics',
+    documentTitle: 'Logs',
     icon: 'terminal',
   },
   settings: {
-    title: 'Cài đặt',
-    eyebrow: 'Cấu hình',
-    documentTitle: 'Cài đặt',
+    title: 'Settings',
+    eyebrow: 'Configuration',
+    documentTitle: 'Settings',
     icon: 'settings',
   },
 };
 
 export const NAV_ITEMS = ['overview', 'device', 'history', 'logs', 'settings'] as const;
 
-export const TRIGGER_LABELS: Record<string, string> = {
-  manual: 'Thủ công',
-  auto: 'Tự động',
-  legacy: 'Qua API',
+/** Translation keys for the rotation trigger values returned by the API. */
+export const TRIGGER_LABEL_KEYS: Record<string, string> = {
+  manual: 'status.triggers.manual',
+  auto: 'status.triggers.auto',
+  legacy: 'status.triggers.legacy',
+  other: 'status.triggers.other',
 };
 
-export const DEVICE_STATUS_LABELS: Record<string, string> = {
-  ready: 'Sẵn sàng',
-  preparing: 'Đang kết nối',
-  disconnected: 'Chưa kết nối',
-  unauthorized: 'Chưa ủy quyền',
-  'adb-missing': 'Thiếu ADB',
-  error: 'Cần xử lý',
+/** Translation keys for the device status values returned by the API. */
+export const DEVICE_STATUS_KEYS: Record<string, string> = {
+  ready: 'status.device.ready',
+  preparing: 'status.device.preparing',
+  disconnected: 'status.device.disconnected',
+  unauthorized: 'status.device.unauthorized',
+  'adb-missing': 'status.device.adbMissing',
+  error: 'status.device.error',
 };
 
 export const DEFAULT_SETTINGS: Settings = {

@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import { useI18n } from '../providers/I18nProvider';
 import { useToast } from '../providers/ToastProvider';
 
 function fallbackCopy(text: string): boolean {
@@ -21,9 +22,10 @@ function fallbackCopy(text: string): boolean {
 
 export function useCopy() {
   const { showToast } = useToast();
+  const { t } = useI18n();
 
   return useCallback(
-    async (text: string, label = 'Đã sao chép') => {
+    async (text: string, label = t('actions.copied')) => {
       let copied = false;
       try {
         if (navigator.clipboard && window.isSecureContext) {
@@ -38,10 +40,14 @@ export function useCopy() {
       if (copied) {
         showToast('success', label, text, 3500);
       } else {
-        showToast('error', 'Không sao chép được', 'Hãy chọn và sao chép nội dung thủ công.');
+        showToast(
+          'error',
+          t('toasts.copyFailed.title'),
+          t('toasts.copyFailed.message'),
+        );
       }
       return copied;
     },
-    [showToast],
+    [showToast, t],
   );
 }

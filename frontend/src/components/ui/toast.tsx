@@ -1,6 +1,7 @@
 import { Toast } from '@base-ui/react/toast';
 import type React from 'react';
 import { Icon } from '@/components/Icon';
+import { useI18n } from '@/app/providers/I18nProvider';
 import { TOAST_ICONS } from '@/lib/constants';
 import { cn } from '@/lib/utils';
 
@@ -46,6 +47,7 @@ function Toasts({
   portalProps?: React.ComponentProps<typeof Toast.Portal>;
 }): React.ReactElement {
   const { toasts } = Toast.useToastManager();
+  const { t } = useI18n();
   const swipeDirection = getSwipeDirection(position);
 
   return (
@@ -132,7 +134,7 @@ function Toasts({
                 </div>
 
                 <Toast.Close
-                  aria-label="Đóng thông báo"
+                  aria-label={t('common.closeNotification')}
                   className="-mt-0.5 -mr-0.5 inline-flex size-6 shrink-0 items-center justify-center rounded-[4px] text-muted-foreground transition-colors hover:bg-muted hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                   type="button"
                 >

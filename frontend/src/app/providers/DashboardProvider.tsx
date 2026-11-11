@@ -23,6 +23,7 @@ import { DEFAULT_SETTINGS, MAX_LOGS, POLL_HIDDEN_MS, POLL_VISIBLE_MS } from '../
 import { delay, errorMessage } from '../../lib/errors';
 import { formatLatency } from '../../lib/format';
 import { useConfirm } from './ConfirmProvider';
+import { useI18n } from './I18nProvider';
 import { useToast } from './ToastProvider';
 
 type ConnectionState = 'loading' | 'online' | 'offline';
@@ -76,6 +77,7 @@ const DashboardContext = createContext<DashboardContextValue | null>(null);
 export function DashboardProvider({ children }: { children: ReactNode }) {
   const { showToast } = useToast();
   const { confirmAction } = useConfirm();
+  const { t } = useI18n();
   const location = useLocation();
   const route = location.pathname.replace(/^\//, '') || 'overview';
 
@@ -188,7 +190,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           return true;
         } catch (error) {
           if (!silent) {
-            showToast('error', 'Không tải được nhật ký', errorMessage(error));
+            showToast(
+              'error',
+              t('toasts.logsLoadFailed.title'),
+              errorMessage(error, t('errors.generic'), t),
+            );
           }
           return false;
         } finally {
@@ -199,7 +205,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       logsPromiseRef.current = promise;
       return promise;
     },
-    [showToast],
+    [showToast, t],
   );
 
   const loadHistory = useCallback(
@@ -214,12 +220,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         return true;
       } catch (error) {
         if (!silent) {
-          showToast('error', 'Không tải được lịch sử', errorMessage(error));
+          showToast(
+            'error',
+            t('toasts.historyLoadFailed.title'),
+            errorMessage(error, t('errors.generic'), t),
+          );
         }
         return false;
       }
     },
-    [showToast],
+    [showToast, t],
   );
 
   const loadSettings = useCallback(
@@ -233,12 +243,16 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         return true;
       } catch (error) {
         if (!silent) {
-          showToast('error', 'Không tải được cài đặt', errorMessage(error));
+          showToast(
+            'error',
+            t('toasts.settingsLoadFailed.title'),
+            errorMessage(error, t('errors.generic'), t),
+          );
         }
         return false;
       }
     },
-    [showToast],
+    [showToast, t],
   );
 
   const watchRotation = useCallback(
@@ -286,29 +300,31 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         const changed = rotation.changed;
         showToast(
           'success',
-          changed === false ? 'Xoay IP hoàn tất' : 'Đã xoay IP thành công',
-          rotation.message || `IP mới: ${rotation.new_ip || '—'}`,
+          changed === false
+            ? t('toasts.rotationComplete.title')
+            : t('toasts.rotationSuccess.title'),
+          rotation.message || t('toasts.rotationSuccess.message', { ip: rotation.new_ip || '—' }),
           7000,
         );
       } else {
         showToast(
           'error',
-          'Xoay IP thất bại',
-          rotation.message || 'Kiểm tra nhật ký để biết chi tiết.',
+          t('toasts.rotationFailed.title'),
+          rotation.message || t('toasts.rotationFailed.message'),
           8000,
         );
       }
       void loadHistory({ silent: true });
     },
-    [loadHistory, showToast],
+    [loadHistory, showToast, t],
   );
 
   const handleServiceDown = useCallback((error: unknown) => {
-    const message = errorMessage(error, 'Không kết nối được dịch vụ điều khiển.');
+    const message = errorMessage(error, t('errors.serviceUnreachable'), t);
     statusErrorRef.current = message;
     setStatusError(message);
     setConnection('offline');
-  }, []);
+  }, [t]);
 
   const applyStatus = useCallback(
     (payload: StatusResponse) => {
@@ -333,13 +349,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         demoToastShownRef.current = true;
         showToast(
           'info',
-          'Đang chạy chế độ DEMO',
-          'Thiết bị và IP được mô phỏng, không kết nối điện thoại thật.',
+          t('toasts.demoMode.title'),
+          t('toasts.demoMode.message'),
           8000,
         );
       }
     },
-    [showToast, watchRotation],
+    [showToast, t, watchRotation],
   );
 
   const loadStatus = useCallback(async () => {
@@ -375,15 +391,15 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         if (spinner && !ok) {
           showToast(
             'error',
-            'Không làm mới được trạng thái',
-            statusErrorRef.current || 'Kiểm tra kết nối dịch vụ.',
+            t('toasts.refreshFailed.title'),
+            statusErrorRef.current || t('toasts.refreshFailed.message'),
           );
         }
       } finally {
         if (spinner) setRefreshing(false);
       }
     },
-    [loadHistory, loadLogs, loadSettings, loadStatus, showToast],
+    [loadHistory, loadLogs, loadSettings, loadStatus, showToast, t],
   );
 
   const startRotation = useCallback(async () => {
@@ -391,8 +407,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     if (!statusRef.current?.device?.connected) {
       showToast(
         'warning',
-        'Chưa có thiết bị',
-        'Kết nối thiết bị Android trước khi xoay IP.',
+        t('toasts.noDevice.title'),
+        t('toasts.noDevice.message'),
       );
       return;
     }
@@ -406,16 +422,20 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           current ? { ...current, rotation: response.rotation } : current,
         );
       }
-      showToast('info', 'Đã bắt đầu xoay IP', 'Tiến trình thường mất 10–25 giây.');
+      showToast(
+        'info',
+        t('toasts.rotationStarted.title'),
+        t('toasts.rotationStarted.message'),
+      );
       await loadStatus();
       void loadLogs({ silent: true });
     } catch (error) {
-      showToast('error', 'Không xoay được IP', errorMessage(error));
+      showToast('error', t('toasts.rotationStartFailed.title'), errorMessage(error, t('errors.generic'), t));
     } finally {
       rotatePendingRef.current = false;
       setRotatePending(false);
     }
-  }, [loadLogs, loadStatus, showToast]);
+  }, [loadLogs, loadStatus, showToast, t]);
 
   const checkConnection = useCallback(async () => {
     setChecking(true);
@@ -424,18 +444,23 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       if (response.status) applyStatus(response.status);
       showToast(
         'success',
-        'Đã kiểm tra kết nối',
-        `${response.status?.network?.ip || '—'} · ${formatLatency(
-          response.status?.network?.latency_ms,
-        )}`,
+        t('toasts.connectionChecked.title'),
+        t('toasts.connectionChecked.message', {
+          ip: response.status?.network?.ip || '—',
+          latency: formatLatency(response.status?.network?.latency_ms),
+        }),
       );
       void loadLogs({ silent: true });
     } catch (error) {
-      showToast('error', 'Không kiểm tra được kết nối', errorMessage(error));
+      showToast(
+        'error',
+        t('toasts.connectionCheckFailed.title'),
+        errorMessage(error, t('errors.generic'), t),
+      );
     } finally {
       setChecking(false);
     }
-  }, [applyStatus, loadLogs, showToast]);
+  }, [applyStatus, loadLogs, showToast, t]);
 
   const reconnectDevice = useCallback(async () => {
     setReconnecting(true);
@@ -443,18 +468,22 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       const response = await dashboardApi.reconnect();
       showToast(
         'info',
-        'Đang kết nối lại thiết bị',
-        response.message || 'Quá trình mất vài giây.',
+        t('toasts.reconnecting.title'),
+        response.message || t('toasts.reconnecting.message'),
       );
       await delay(900);
       await loadStatus();
       void loadLogs({ silent: true });
     } catch (error) {
-      showToast('error', 'Không kết nối lại được thiết bị', errorMessage(error));
+      showToast(
+        'error',
+        t('toasts.reconnectFailed.title'),
+        errorMessage(error, t('errors.generic'), t),
+      );
     } finally {
       setReconnecting(false);
     }
-  }, [loadLogs, loadStatus, showToast]);
+  }, [loadLogs, loadStatus, showToast, t]);
 
   const setDeviceCharging = useCallback(
     async (enabled: boolean) => {
@@ -463,28 +492,31 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         await dashboardApi.setDeviceCharging(enabled);
         showToast(
           enabled ? 'success' : 'warning',
-          enabled ? 'Đã bật lại sạc pin' : 'Đã ngắt sạc pin tạm thời',
+          enabled ? t('toasts.chargingEnabled.title') : t('toasts.chargingDisabled.title'),
           enabled
-            ? 'Thiết bị tiếp tục nhận nguồn sạc.'
-            : 'Đang ngắt sạc để bảo vệ pin tránh quá nhiệt.',
+            ? t('toasts.chargingEnabled.message')
+            : t('toasts.chargingDisabled.message'),
         );
         await loadStatus();
         void loadLogs({ silent: true });
       } catch (error) {
-        showToast('error', 'Không điều khiển được sạc pin', errorMessage(error));
+        showToast(
+          'error',
+          t('toasts.chargingFailed.title'),
+          errorMessage(error, t('errors.generic'), t),
+        );
       } finally {
         setTogglingCharging(false);
       }
     },
-    [loadLogs, loadStatus, showToast],
+    [loadLogs, loadStatus, showToast, t],
   );
 
   const restartProxy = useCallback(async () => {
     const confirmed = await confirmAction({
-      title: 'Khởi động lại daemon proxy?',
-      description:
-        'Các kết nối đang dùng proxy có thể bị gián đoạn trong vài giây. Thiết bị vẫn được giữ kết nối.',
-      confirmLabel: 'Khởi động lại',
+      title: t('confirm.restartProxyTitle'),
+      description: t('confirm.restartProxyDescription'),
+      confirmLabel: t('confirm.restartProxyConfirm'),
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -494,27 +526,31 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       const response = await dashboardApi.restartProxy();
       showToast(
         'info',
-        'Đang khởi động lại daemon',
-        response.message || 'Vui lòng chờ vài giây.',
+        t('toasts.restartingDaemon.title'),
+        response.message || t('toasts.restartingDaemon.message'),
       );
       await delay(1200);
       await loadStatus();
       void loadLogs({ silent: true });
     } catch (error) {
-      showToast('error', 'Không khởi động lại được daemon', errorMessage(error));
+      showToast(
+        'error',
+        t('toasts.restartFailed.title'),
+        errorMessage(error, t('errors.generic'), t),
+      );
     } finally {
       setRestarting(false);
     }
-  }, [confirmAction, loadLogs, loadStatus, showToast]);
+  }, [confirmAction, loadLogs, loadStatus, showToast, t]);
 
   const clearHistory = useCallback(async () => {
     const count = historyRef.current.length;
     if (!count) return;
 
     const confirmed = await confirmAction({
-      title: 'Xóa toàn bộ lịch sử xoay IP?',
-      description: `Sẽ xóa ${count} bản ghi trên máy tính. Thao tác này không thể hoàn tác.`,
-      confirmLabel: 'Xóa lịch sử',
+      title: t('confirm.clearHistoryTitle'),
+      description: t('confirm.clearHistoryDescription', { count }),
+      confirmLabel: t('confirm.clearHistoryConfirm'),
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -526,22 +562,29 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setHistory([]);
       historyLoadedRef.current = true;
       setHistoryLoaded(true);
-      showToast('success', 'Đã xóa lịch sử', 'Các lần xoay IP trước đây đã được xóa.');
+      showToast(
+        'success',
+        t('toasts.historyCleared.title'),
+        t('toasts.historyCleared.message'),
+      );
       await loadStatus();
       void loadLogs({ silent: true });
     } catch (error) {
-      showToast('error', 'Không xóa được lịch sử', errorMessage(error));
+      showToast(
+        'error',
+        t('toasts.historyClearFailed.title'),
+        errorMessage(error, t('errors.generic'), t),
+      );
     } finally {
       setClearingHistory(false);
     }
-  }, [confirmAction, loadLogs, loadStatus, showToast]);
+  }, [confirmAction, loadLogs, loadStatus, showToast, t]);
 
   const clearLogs = useCallback(async () => {
     const confirmed = await confirmAction({
-      title: 'Xóa toàn bộ nhật ký?',
-      description:
-        'Nhật ký hoạt động cục bộ sẽ bị xóa. Lịch sử xoay IP và cài đặt được giữ nguyên.',
-      confirmLabel: 'Xóa nhật ký',
+      title: t('confirm.clearLogsTitle'),
+      description: t('confirm.clearLogsDescription'),
+      confirmLabel: t('confirm.clearLogsConfirm'),
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -555,20 +598,27 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       setLogsLoaded(false);
       logLastIdRef.current = Math.max(0, (Number(response.last_id) || 1) - 1);
       await loadLogs({ reset: true });
-      showToast('success', 'Đã xóa nhật ký', 'Nhật ký mới sẽ bắt đầu từ bây giờ.');
+      showToast(
+        'success',
+        t('toasts.logsCleared.title'),
+        t('toasts.logsCleared.message'),
+      );
     } catch (error) {
-      showToast('error', 'Không xóa được nhật ký', errorMessage(error));
+      showToast(
+        'error',
+        t('toasts.logsClearFailed.title'),
+        errorMessage(error, t('errors.generic'), t),
+      );
     } finally {
       setClearingLogs(false);
     }
-  }, [confirmAction, loadLogs, showToast]);
+  }, [confirmAction, loadLogs, showToast, t]);
 
   const resetUsage = useCallback(async () => {
     const confirmed = await confirmAction({
-      title: 'Đặt lại thống kê data 4G hôm nay?',
-      description:
-        'Bộ đếm lưu lượng nhận và gửi trong ngày sẽ được đặt về 0. Cài đặt giới hạn gói cước được giữ nguyên.',
-      confirmLabel: 'Đặt lại',
+      title: t('confirm.resetUsageTitle'),
+      description: t('confirm.resetUsageDescription'),
+      confirmLabel: t('confirm.resetUsageConfirm'),
       tone: 'danger',
     });
     if (!confirmed) return;
@@ -577,14 +627,22 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     try {
       await dashboardApi.resetUsage();
       await loadStatus();
-      showToast('success', 'Đã đặt lại dữ liệu 4G', 'Bộ đếm lưu lượng hôm nay đã được đặt lại.');
+      showToast(
+        'success',
+        t('toasts.usageReset.title'),
+        t('toasts.usageReset.message'),
+      );
       void loadLogs({ silent: true });
     } catch (error) {
-      showToast('error', 'Không đặt lại được dung lượng', errorMessage(error));
+      showToast(
+        'error',
+        t('toasts.usageResetFailed.title'),
+        errorMessage(error, t('errors.generic'), t),
+      );
     } finally {
       setResettingUsage(false);
     }
-  }, [confirmAction, loadLogs, loadStatus, showToast]);
+  }, [confirmAction, loadLogs, loadStatus, showToast, t]);
 
   const saveSettings = useCallback(async (patch: Partial<Settings>) => {
     const response = await dashboardApi.saveSettings(patch);
@@ -620,18 +678,24 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           30;
         showToast(
           'success',
-          next ? 'Đã bật xoay IP tự động' : 'Đã tắt xoay IP tự động',
-          next ? `Chu kỳ ${interval} phút.` : 'Lịch tự động đã dừng.',
+          next ? t('toasts.autoEnabled.title') : t('toasts.autoDisabled.title'),
+          next
+            ? t('toasts.autoEnabled.message', { interval })
+            : t('toasts.autoDisabled.message'),
         );
         await loadStatus();
       } catch (error) {
-        showToast('error', 'Không đổi được lịch tự động', errorMessage(error));
+        showToast(
+          'error',
+          t('toasts.autoFailed.title'),
+          errorMessage(error, t('errors.generic'), t),
+        );
       } finally {
         autoPendingRef.current = false;
         setAutoPending(false);
       }
     },
-    [loadStatus, saveSettings, showToast],
+    [loadStatus, saveSettings, showToast, t],
   );
 
   useEffect(() => {

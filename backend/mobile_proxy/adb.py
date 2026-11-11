@@ -11,12 +11,51 @@ from typing import Any
 
 
 def resolve_adb_path(executable: str = "adb") -> str:
-    """Resolve the ADB binary path, preferring platform-tools on Windows if default."""
-    if executable == "adb":
-        standard_path = Path(r"C:\platform-tools\adb.exe")
-        if standard_path.is_file():
-            return str(standard_path)
-    return executable
+    """Resolve the ADB binary path across Windows, macOS, and Linux."""
+    if executable != "adb":
+        expanded = Path(executable).expanduser()
+        if expanded.is_file():
+            return str(expanded.resolve())
+        return executable
+
+    # Check if adb is available in system PATH
+    found_in_path = shutil.which("adb")
+    if found_in_path:
+        return found_in_path
+
+    # Check standard SDK and package manager locations across platforms
+    candidates: list[Path] = []
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if local_app_data:
+        candidates.append(
+            Path(local_app_data) / "Android" / "Sdk" / "platform-tools" / "adb.exe"
+        )
+
+    try:
+        home = Path.home()
+        candidates.extend([
+            # Windows
+            home / "AppData" / "Local" / "Android" / "Sdk" / "platform-tools" / "adb.exe",
+            Path(r"C:\platform-tools\adb.exe"),
+            # macOS
+            home / "Library" / "Android" / "sdk" / "platform-tools" / "adb",
+            Path("/opt/homebrew/bin/adb"),
+            Path("/usr/local/bin/adb"),
+            # Linux
+            home / "Android" / "Sdk" / "platform-tools" / "adb",
+            Path("/usr/bin/adb"),
+        ])
+    except (RuntimeError, OSError):
+        pass
+
+    for candidate in candidates:
+        try:
+            if candidate.is_file():
+                return str(candidate)
+        except OSError:
+            continue
+
+    return "adb"
 
 
 @dataclass(frozen=True)

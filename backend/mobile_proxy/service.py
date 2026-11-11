@@ -10,8 +10,9 @@ from typing import Any
 
 from .adb import AdbClient
 from .config import APP_NAME, APP_VERSION, BIN_DIR, REMOTE_BIN, AppConfig
-from .demo import DemoBackend
+from .demo import DemoBackend, make_demo_history
 from .events import EventLog
+from .i18n import DEFAULT_LANGUAGE, get_message
 from .network import NetworkChecker, NetworkError, NetworkInfo
 from .storage import (
     MAX_HISTORY,
@@ -82,6 +83,7 @@ class MobileProxyService:
         self._history_store = HistoryStore(config.history_path)
         self._usage_store = DataUsageStore(config.usage_path)
         self.settings = self._settings_store.load()
+        self.language = self.settings.get("language", DEFAULT_LANGUAGE)
         self.history = self._history_store.load()
 
         self._rotating = False
@@ -138,7 +140,7 @@ class MobileProxyService:
             "status": "idle",
             "step": "idle",
             "progress": 0,
-            "message": "Chưa xoay IP trong phiên này.",
+            "message": self._t("rotation.idle"),
             "trigger": None,
             "running": False,
             "started_at": None,
@@ -157,19 +159,21 @@ class MobileProxyService:
             return
         self._started = True
         self.events.add(
-            "info", f"Khởi động {APP_NAME} v{APP_VERSION}.", source="app"
+            "info",
+            self._t("app.starting", app=APP_NAME, version=APP_VERSION),
+            source="app",
         )
         if self.demo:
             self.events.add(
                 "warning",
-                "Chế độ DEMO đang bật: thiết bị và IP đều được mô phỏng.",
+                self._t("app.demo_mode"),
                 source="app",
             )
         if not self.adb.available():
             self._adb_missing_logged = True
             self.events.add(
                 "error",
-                "Không tìm thấy ADB trong PATH. Cài Android Platform Tools để tiếp tục.",
+                self._t("adb.missing"),
                 source="adb",
             )
 
@@ -203,13 +207,19 @@ class MobileProxyService:
                     self.adb.remove_forward(serial, self.config.proxy_port)
                     self.events.add(
                         "info",
-                        "Đã dừng daemon proxy và giải phóng cổng trên điện thoại.",
+                        self._t("app.cleanup_done"),
                         source="app",
                     )
                 except Exception as exc:  # pragma: no cover - best effort
                     self.events.add(
-                        "warning", f"Không dọn dẹp được thiết bị: {exc}", source="app"
+                        "warning",
+                        self._t("app.cleanup_failed", error=exc),
+                        source="app",
                     )
+
+    def _t(self, key: str, **kwargs: Any) -> str:
+        """Return a catalog message in the service's active language."""
+        return get_message(key, self.language, **kwargs)
 
     def _spawn(self, target: Any, name: str) -> threading.Thread:
         thread = threading.Thread(target=target, name=name, daemon=True)
@@ -325,21 +335,19 @@ class MobileProxyService:
                         self._adb_missing_logged = True
                         self.events.add(
                             "error",
-                            "Không tìm thấy ADB trong PATH. Đang chờ Android Platform Tools.",
+                            self._t("adb.missing_waiting"),
                             source="adb",
                         )
                     with self._state_lock:
                         if not self.device["connected"]:
                             self.device["status"] = "adb-missing"
-                            self.device["error"] = (
-                                "Không tìm thấy lệnh adb trên máy tính."
-                            )
+                            self.device["error"] = self._t("adb.command_missing")
                     self._stop.wait(5)
                     continue
 
                 if self._adb_missing_logged:
                     self._adb_missing_logged = False
-                    self.events.add("info", "Đã tìm thấy ADB.", source="adb")
+                    self.events.add("info", self._t("adb.found"), source="adb")
 
                 devices = self.adb.devices()
                 ready = [item for item in devices if item.status == "device"]
@@ -387,14 +395,12 @@ class MobileProxyService:
                         with self._state_lock:
                             self.device["serial"] = serial
                             self.device["status"] = "unauthorized"
-                            self.device["error"] = (
-                                "Thiết bị chưa được ủy quyền gỡ lỗi USB."
-                            )
+                            self.device["error"] = self._t("adb.unauthorized_error")
                         if not self._unauthorized_logged:
                             self._unauthorized_logged = True
                             self.events.add(
                                 "warning",
-                                "Thiết bị chưa được ủy quyền. Bấm 'Cho phép gỡ lỗi USB' trên màn hình điện thoại.",
+                                self._t("adb.unauthorized"),
                                 source="adb",
                             )
             except FileNotFoundError:
@@ -402,12 +408,12 @@ class MobileProxyService:
                     self._adb_missing_logged = True
                     self.events.add(
                         "error",
-                        "Không chạy được ADB. Kiểm tra Android Platform Tools trong PATH.",
+                        self._t("adb.failed"),
                         source="adb",
                     )
             except Exception as exc:  # keep the monitor alive
                 self.events.add(
-                    "error", f"Lỗi giám sát thiết bị: {exc}", source="adb"
+                    "error", self._t("adb.monitor_error", error=exc), source="adb"
                 )
             self._stop.wait(2)
 
@@ -444,7 +450,7 @@ class MobileProxyService:
                 try:
                     self.events.add(
                         "warning",
-                        "Daemon proxy không phản hồi. Đang khởi động lại...",
+                        self._t("proxy.unresponsive_restarting"),
                         source="proxy",
                     )
                     self._start_daemon(serial)
@@ -479,12 +485,10 @@ class MobileProxyService:
                         self.device["status"] = "ready"
                     else:
                         self.device["status"] = "error"
-                        self.device["error"] = (
-                            "Thiết bị đang bận. Hãy thử kết nối lại."
-                        )
+                        self.device["error"] = self._t("device.busy_retry")
             self.events.add(
                 "warning",
-                "Thiết bị đang xử lý thao tác khác. Bỏ qua lần kết nối này.",
+                self._t("device.busy_skip"),
                 source="adb",
             )
             return
@@ -505,21 +509,24 @@ class MobileProxyService:
                 )
             if reason == "manual":
                 self.events.add(
-                    "info", "Đang kết nối lại thiết bị theo yêu cầu.", source="adb"
+                    "info", self._t("device.reconnect_requested"), source="adb"
                 )
             elif reason == "retry":
                 self.events.add(
-                    "info", "Đang thử kết nối lại thiết bị...", source="adb"
+                    "info", self._t("device.reconnect_retry"), source="adb"
                 )
             else:
                 self.events.add(
-                    "info", f"Phát hiện thiết bị Android: {serial}", source="adb"
+                    "info", self._t("device.detected", serial=serial), source="adb"
                 )
 
-            model = self.adb.getprop(serial, "ro.product.model").strip() or "Không xác định"
+            model = (
+                self.adb.getprop(serial, "ro.product.model").strip()
+                or self._t("common.unknown")
+            )
             android = (
                 self.adb.getprop(serial, "ro.build.version.release").strip()
-                or "Không xác định"
+                or self._t("common.unknown")
             )
             abi = (
                 self.adb.getprop(serial, "ro.product.cpu.abi").strip()
@@ -537,7 +544,15 @@ class MobileProxyService:
                 )
             self.events.add(
                 "info",
-                f"Thiết bị: {model} · Android {android} · {abi} · {'Đã Root' if rooted else 'Chưa Root'}",
+                self._t(
+                    "device.summary",
+                    model=model,
+                    android=android,
+                    abi=abi,
+                    root_status=self._t(
+                        "common.rooted" if rooted else "common.not_rooted"
+                    ),
+                ),
                 source="adb",
             )
 
@@ -545,23 +560,25 @@ class MobileProxyService:
                 "proxy_arm64.bin" if "arm64" in abi.lower() else "proxy_arm32.bin"
             )
             if not chosen.exists():
-                raise RuntimeError(f"Không tìm thấy nhị phân proxy: {chosen.name}")
+                raise RuntimeError(
+                    self._t("proxy.binary_missing", name=chosen.name)
+                )
 
-            self.events.add("info", "Đang dừng daemon proxy cũ...", source="proxy")
+            self.events.add(
+                "info", self._t("proxy.stopping_old"), source="proxy"
+            )
             self.adb.shell(serial, "pkill -f mini_proxy", timeout=8)
             self._sleep(0.4)
 
             self.events.add(
-                "info", "Đang đồng bộ daemon proxy sang điện thoại...", source="proxy"
+                "info", self._t("proxy.syncing"), source="proxy"
             )
             self.adb.push(serial, str(chosen), REMOTE_BIN)
             self.adb.shell(serial, f"chmod 755 {REMOTE_BIN}", timeout=8)
 
             running = self._start_daemon(serial)
             if not running:
-                raise RuntimeError(
-                    "Daemon proxy không khởi động được trên điện thoại."
-                )
+                raise RuntimeError(self._t("proxy.start_failed_device"))
 
             with self._state_lock:
                 self.device["status"] = "ready"
@@ -573,7 +590,7 @@ class MobileProxyService:
             self._schedule_next()
             self.events.add(
                 "success",
-                f"Phiên proxy đã sẵn sàng trên {model}.",
+                self._t("proxy.session_ready", model=model),
                 source="app",
             )
         except Exception as exc:
@@ -586,7 +603,7 @@ class MobileProxyService:
                 self.proxy["forwarded"] = False
                 self._next_rotate_at = None
             self.events.add(
-                "error", f"Không thiết lập được proxy: {exc}", source="proxy"
+                "error", self._t("proxy.setup_failed", error=exc), source="proxy"
             )
         finally:
             self._op_lock.release()
@@ -595,7 +612,7 @@ class MobileProxyService:
         try:
             self.events.add(
                 "info",
-                f"Đang khởi động daemon proxy trên cổng {self.config.proxy_port}...",
+                self._t("proxy.starting", port=self.config.proxy_port),
                 source="proxy",
             )
             command = (
@@ -619,13 +636,13 @@ class MobileProxyService:
             if running:
                 self.events.add(
                     "success",
-                    f"Daemon proxy đang chạy (PID {pid}).",
+                    self._t("proxy.running", pid=pid),
                     source="proxy",
                 )
             else:
                 self.events.add(
                     "error",
-                    "Daemon proxy không chạy sau khi khởi động.",
+                    self._t("proxy.not_running"),
                     source="proxy",
                 )
             return running
@@ -635,7 +652,7 @@ class MobileProxyService:
                 self.device["daemon_running"] = False
                 self.device["forwarded"] = False
             self.events.add(
-                "error", f"Không khởi động được daemon proxy: {exc}", source="proxy"
+                "error", self._t("proxy.start_failed", error=exc), source="proxy"
             )
             return False
 
@@ -658,14 +675,14 @@ class MobileProxyService:
             self.network.update(
                 {
                     "state": "offline",
-                    "error": "Thiết bị đã ngắt kết nối.",
+                    "error": self._t("network.device_disconnected"),
                 }
             )
             self._next_rotate_at = None
         if was_connected:
             self.events.add(
                 "warning",
-                "Đã ngắt kết nối thiết bị. Đang chờ cắm lại cáp USB...",
+                self._t("device.disconnected"),
                 source="adb",
             )
 
@@ -683,7 +700,7 @@ class MobileProxyService:
                     if not self._overheat_critical_logged:
                         self.events.add(
                             "error",
-                            f"Cảnh báo nguy hiểm: Nhiệt độ pin {temp}°C vượt ngưỡng 45°C! Đang ngắt sạc bảo vệ.",
+                            self._t("battery.critical", temp=temp),
                             source="adb",
                         )
                         self._overheat_critical_logged = True
@@ -697,7 +714,7 @@ class MobileProxyService:
                     if not self._overheat_warning_logged:
                         self.events.add(
                             "warning",
-                            f"Cảnh báo: Nhiệt độ pin tăng cao ({temp}°C > 40°C). Hãy chú ý vị trí đặt máy thoáng mát.",
+                            self._t("battery.warning", temp=temp),
                             source="adb",
                         )
                         self._overheat_warning_logged = True
@@ -734,9 +751,7 @@ class MobileProxyService:
 
         if not connected or not serial:
             if announce:
-                raise NotConnectedError(
-                    "Chưa có thiết bị Android nào được kết nối."
-                )
+                raise NotConnectedError(self._t("errors.not_connected"))
             return False
 
         try:
@@ -754,11 +769,13 @@ class MobileProxyService:
                 self._last_network_check = time.time()
             if announce or previous_error != message:
                 self.events.add(
-                    "error", f"Không xác minh được IP: {message}", source="network"
+                    "error",
+                    self._t("network.verify_failed", error=message),
+                    source="network",
                 )
             return False
         except Exception as exc:
-            message = f"Lỗi không xác định khi kiểm tra IP: {exc}"
+            message = self._t("network.unknown_error", error=exc)
             with self._state_lock:
                 self.network.update({"state": "error", "error": message})
                 self._last_network_check = time.time()
@@ -789,7 +806,12 @@ class MobileProxyService:
         ):
             self.events.add(
                 "success",
-                f"IP công khai: {info.ip} · {info.isp} · {info.city}".rstrip(" ·"),
+                self._t(
+                    "network.public_ip",
+                    ip=info.ip,
+                    isp=info.isp,
+                    city=info.city,
+                ).rstrip(" ·"),
                 source="network",
             )
         return True
@@ -797,19 +819,17 @@ class MobileProxyService:
     def refresh_network(self) -> dict[str, Any]:
         with self._state_lock:
             if not self.device["connected"] or not self.device["serial"]:
-                raise NotConnectedError(
-                    "Chưa có thiết bị Android nào được kết nối."
-                )
+                raise NotConnectedError(self._t("errors.not_connected"))
             if self._rotating:
-                raise BusyError("Đang xoay IP. Vui lòng chờ hoàn tất.")
+                raise BusyError(self._t("errors.rotating"))
             if self._network_checking:
-                raise BusyError("Đang kiểm tra kết nối.")
+                raise BusyError(self._t("errors.checking_network"))
         if not self._op_lock.acquire(blocking=False):
-            raise BusyError("Thiết bị đang xử lý thao tác khác.")
+            raise BusyError(self._t("errors.device_busy"))
         try:
             with self._state_lock:
                 if self._network_checking:
-                    raise BusyError("Đang kiểm tra kết nối.")
+                    raise BusyError(self._t("errors.checking_network"))
                 self._network_checking = True
             try:
                 ok = self._check_network(announce=True)
@@ -821,7 +841,9 @@ class MobileProxyService:
 
         if not ok:
             with self._state_lock:
-                message = self.network.get("error") or "Không kiểm tra được kết nối."
+                message = self.network.get("error") or self._t(
+                    "network.check_failed"
+                )
             raise UpstreamError(message)
         return self.status()
 
@@ -831,15 +853,11 @@ class MobileProxyService:
     def rotate(self, *, trigger: str = "manual", wait: bool = False) -> dict[str, Any]:
         with self._state_lock:
             if self._rotating:
-                raise BusyError("Đang có một lần xoay IP khác chạy.")
+                raise BusyError(self._t("errors.rotation_running"))
             if not self.device["connected"] or not self.device["serial"]:
-                raise NotConnectedError(
-                    "Chưa có thiết bị Android nào được kết nối."
-                )
+                raise NotConnectedError(self._t("errors.not_connected"))
             if not self.device["daemon_running"]:
-                raise BusyError(
-                    "Daemon proxy chưa chạy. Hãy kết nối lại thiết bị trước khi xoay IP."
-                )
+                raise BusyError(self._t("errors.daemon_not_running"))
 
             job_id = uuid.uuid4().hex[:10]
             old_ip = self.network.get("ip")
@@ -850,7 +868,7 @@ class MobileProxyService:
                 "status": "running",
                 "step": "preparing",
                 "progress": 8,
-                "message": "Đang chuẩn bị xoay IP...",
+                "message": self._t("rotation.preparing"),
                 "trigger": trigger,
                 "running": True,
                 "started_at": now,
@@ -865,10 +883,12 @@ class MobileProxyService:
             serial = self.device["serial"]
 
         label = {
-            "auto": "tự động",
-            "legacy": "qua API",
-        }.get(trigger, "thủ công")
-        self.events.add("info", f"Bắt đầu xoay IP ({label}).", source="rotation")
+            "auto": self._t("rotation.trigger_auto"),
+            "legacy": self._t("rotation.trigger_api"),
+        }.get(trigger, self._t("rotation.trigger_manual"))
+        self.events.add(
+            "info", self._t("rotation.started", trigger=label), source="rotation"
+        )
 
         thread = threading.Thread(
             target=self._run_rotation,
@@ -886,11 +906,13 @@ class MobileProxyService:
                     {
                         "status": "failed",
                         "step": "error",
-                        "message": f"Không bắt đầu được tiến trình xoay: {exc}",
+                        "message": self._t(
+                            "rotation.start_failed_detail", error=exc
+                        ),
                         "running": False,
                     }
                 )
-            raise ServiceError("Không bắt đầu được tiến trình xoay IP.") from exc
+            raise ServiceError(self._t("errors.rotation_start_failed")) from exc
         if wait:
             thread.join(timeout=120)
         with self._state_lock:
@@ -911,16 +933,16 @@ class MobileProxyService:
 
                 for attempt in range(1, attempts + 1):
                     if self._stop.is_set():
-                        raise RuntimeError("Ứng dụng đang dừng.")
+                        raise RuntimeError(self._t("errors.app_stopping"))
 
                     base = 20 if attempt == 1 else 42
                     self._set_rotation(
                         step="network-off",
                         progress=base,
                         message=(
-                            "Bật chế độ máy bay..."
+                            self._t("rotation.airplane_on")
                             if method == "airplane"
-                            else "Tắt dữ liệu di động..."
+                            else self._t("rotation.data_off")
                         ),
                     )
                     self._toggle_network(serial, method, enabled=True)
@@ -930,9 +952,9 @@ class MobileProxyService:
                         step="network-on",
                         progress=base + 14,
                         message=(
-                            "Tắt chế độ máy bay, chờ mạng 4G..."
+                            self._t("rotation.airplane_off")
                             if method == "airplane"
-                            else "Bật lại dữ liệu di động, chờ mạng 4G..."
+                            else self._t("rotation.data_on")
                         ),
                     )
                     self._toggle_network(serial, method, enabled=False)
@@ -941,7 +963,7 @@ class MobileProxyService:
                     self._set_rotation(
                         step="waiting",
                         progress=base + 26,
-                        message="Đang chờ nhà mạng cấp IP mới...",
+                        message=self._t("rotation.waiting"),
                     )
                     self._ensure_daemon_after_rotation(serial)
                     self._sleep(1.0)
@@ -949,7 +971,7 @@ class MobileProxyService:
                     self._set_rotation(
                         step="verifying",
                         progress=75 if attempt == 1 else 88,
-                        message="Đang xác minh IP công khai...",
+                        message=self._t("rotation.verifying"),
                     )
 
                     # Adaptive polling loop: allow time for 4G radio negotiation & DNS resolution
@@ -971,11 +993,16 @@ class MobileProxyService:
                         self._sleep(1.5)
 
                     if info is None:
-                        err_text = last_error or "Không lấy được IP sau khi xoay."
+                        err_text = last_error or self._t("rotation.no_ip")
                         if attempt < attempts:
                             self.events.add(
                                 "warning",
-                                f"Chưa xác minh được IP ({err_text}). Thử lại lần {attempt + 1}/{attempts}.",
+                                self._t(
+                                    "rotation.retry_verify",
+                                    error=err_text,
+                                    attempt=attempt + 1,
+                                    attempts=attempts,
+                                ),
                                 source="rotation",
                             )
                             self._sleep(3.0)
@@ -985,7 +1012,7 @@ class MobileProxyService:
                     if old_ip and info.ip == old_ip and attempt < attempts:
                         self.events.add(
                             "warning",
-                            "Nhà mạng cấp lại cùng IP cũ. Đang thử xoay lại...",
+                            self._t("rotation.same_ip_retry"),
                             source="rotation",
                         )
                         self._sleep(2.0)
@@ -993,9 +1020,7 @@ class MobileProxyService:
                     break
 
                 if info is None:
-                    raise RuntimeError(
-                        last_error or "Không lấy được IP sau khi xoay."
-                    )
+                    raise RuntimeError(last_error or self._t("rotation.no_ip"))
 
                 changed = bool(old_ip) and info.ip != old_ip
                 with self._state_lock:
@@ -1015,9 +1040,9 @@ class MobileProxyService:
                     self._last_network_check = time.time()
 
                 if changed or not old_ip:
-                    message = f"Đã xoay IP thành công: {info.ip}"
+                    message = self._t("rotation.success", ip=info.ip)
                 else:
-                    message = f"IP sau khi xoay vẫn là {info.ip}"
+                    message = self._t("rotation.unchanged", ip=info.ip)
                 success = True
                 finished = time.time()
                 duration = round(finished - started, 1)
@@ -1038,13 +1063,18 @@ class MobileProxyService:
                 if changed or not old_ip:
                     self.events.add(
                         "success",
-                        f"Xoay IP thành công: {old_ip or '—'} → {info.ip} · {info.isp}.",
+                        self._t(
+                            "rotation.success_log",
+                            old_ip=old_ip or "—",
+                            ip=info.ip,
+                            isp=info.isp,
+                        ),
                         source="rotation",
                     )
                 else:
                     self.events.add(
                         "warning",
-                        f"Nhà mạng vẫn cấp IP cũ ({info.ip}) sau 2 lần thử.",
+                        self._t("rotation.same_ip_final", ip=info.ip),
                         source="rotation",
                     )
                 self._record_history(
@@ -1060,7 +1090,7 @@ class MobileProxyService:
                     changed=bool(changed),
                 )
         except Exception as exc:
-            message = str(exc) or "Xoay IP thất bại."
+            message = str(exc) or self._t("rotation.failed")
             finished = time.time()
             with self._state_lock:
                 self.rotation.update(
@@ -1078,7 +1108,9 @@ class MobileProxyService:
                     self.network["state"] = "error"
                     self.network["error"] = message
             self.events.add(
-                "error", f"Xoay IP thất bại: {message}", source="rotation"
+                "error",
+                self._t("rotation.failed_log", error=message),
+                source="rotation",
             )
             self._record_history(
                 job_id=job_id,
@@ -1131,13 +1163,11 @@ class MobileProxyService:
         if not alive:
             self.events.add(
                 "warning",
-                "Daemon proxy đã dừng sau khi đổi mạng. Đang khởi động lại...",
+                self._t("proxy.stopped_after_network_restarting"),
                 source="proxy",
             )
             if not self._start_daemon(serial):
-                raise RuntimeError(
-                    "Không thể khởi động lại daemon proxy sau khi xoay IP."
-                )
+                raise RuntimeError(self._t("proxy.restart_failed_rotation"))
         else:
             for _ in range(3):
                 self.adb.forward(
@@ -1196,7 +1226,7 @@ class MobileProxyService:
         except OSError as exc:
             self.events.add(
                 "warning",
-                f"Không lưu được lịch sử xoay IP: {exc}",
+                self._t("history.save_failed", error=exc),
                 source="storage",
             )
 
@@ -1214,13 +1244,27 @@ class MobileProxyService:
         except OSError as exc:
             self.events.add(
                 "warning",
-                f"Không lưu được lịch sử xoay IP: {exc}",
+                self._t("history.save_failed", error=exc),
                 source="storage",
             )
-        self.events.add("info", "Đã xóa lịch sử xoay IP.", source="app")
+        self.events.add("info", self._t("history.cleared"), source="app")
         with self._state_lock:
             stats = self._stats_locked()
         return {"stats": stats}
+
+    def seed_demo_history(self) -> None:
+        """Seed sample rotation history if in demo mode and history is currently empty."""
+        if not self.demo:
+            return
+        with self._state_lock:
+            if self.history:
+                return
+            self.history = make_demo_history()
+            entries = list(self.history)
+        try:
+            self._history_store.save(entries)
+        except OSError:
+            pass
 
     # ------------------------------------------------------------------
     # Settings, scheduling and maintenance
@@ -1228,9 +1272,11 @@ class MobileProxyService:
     def update_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._state_lock:
             current = dict(self.settings)
-        candidate = validate_settings(payload, current)
+        candidate = validate_settings(payload, current, lang=self.language)
+        language_changed = current.get("language") != candidate["language"]
         with self._state_lock:
             self.settings = candidate
+            self.language = candidate.get("language", DEFAULT_LANGUAGE)
             self._settings_store.save(candidate)
             if candidate["auto_rotate_enabled"] and self.device["connected"]:
                 self._next_rotate_at = (
@@ -1239,16 +1285,25 @@ class MobileProxyService:
             else:
                 self._next_rotate_at = None
 
+        if language_changed:
+            self.events.add(
+                "info",
+                self._t("settings.language_changed", language=self.language),
+                source="settings",
+            )
         if current.get("auto_rotate_enabled") != candidate["auto_rotate_enabled"]:
             if candidate["auto_rotate_enabled"]:
                 self.events.add(
                     "success",
-                    f"Đã bật xoay IP tự động mỗi {candidate['auto_rotate_interval_min']} phút.",
+                    self._t(
+                        "settings.auto_rotate_enabled",
+                        minutes=candidate["auto_rotate_interval_min"],
+                    ),
                     source="settings",
                 )
             else:
                 self.events.add(
-                    "info", "Đã tắt xoay IP tự động.", source="settings"
+                    "info", self._t("settings.auto_rotate_disabled"), source="settings"
                 )
         elif (
             current.get("auto_rotate_interval_min")
@@ -1256,17 +1311,22 @@ class MobileProxyService:
         ):
             self.events.add(
                 "info",
-                f"Chu kỳ xoay tự động: {candidate['auto_rotate_interval_min']} phút.",
+                self._t(
+                    "settings.interval_changed",
+                    minutes=candidate["auto_rotate_interval_min"],
+                ),
                 source="settings",
             )
         if current.get("rotate_method") != candidate["rotate_method"]:
-            label = (
-                "chế độ máy bay"
+            label = self._t(
+                "settings.method_airplane"
                 if candidate["rotate_method"] == "airplane"
-                else "bật/tắt dữ liệu di động"
+                else "settings.method_data"
             )
             self.events.add(
-                "info", f"Phương thức xoay: {label}.", source="settings"
+                "info",
+                self._t("settings.method_changed", method=label),
+                source="settings",
             )
         return self.settings_payload()
 
@@ -1301,14 +1361,16 @@ class MobileProxyService:
                     except ServiceError as exc:
                         self.events.add(
                             "warning",
-                            f"Không thể xoay IP tự động: {exc}",
+                            self._t("auto_rotate.failed", error=exc),
                             source="auto",
                         )
                         with self._state_lock:
                             self._next_rotate_at = time.time() + 60
             except Exception as exc:  # pragma: no cover - defensive
                 self.events.add(
-                    "error", f"Lỗi lịch xoay tự động: {exc}", source="auto"
+                    "error",
+                    self._t("auto_rotate.schedule_error", error=exc),
+                    source="auto",
                 )
             self._stop.wait(1)
 
@@ -1317,31 +1379,33 @@ class MobileProxyService:
             serial = self.device["serial"]
             status = self.device["status"]
             if not serial:
-                raise NotConnectedError("Chưa phát hiện thiết bị Android.")
+                raise NotConnectedError(self._t("errors.device_not_detected"))
             if self._rotating:
-                raise BusyError("Đang xoay IP. Vui lòng chờ hoàn tất.")
+                raise BusyError(self._t("errors.rotating"))
             if status == "preparing":
-                raise BusyError("Thiết bị đang được kết nối.")
+                raise BusyError(self._t("errors.device_connecting"))
             self.device["status"] = "preparing"
             self.device["error"] = None
         self._spawn(
             lambda: self._connect_device(serial, reason="manual"),
             "reconnect-device",
         )
-        return {"message": "Đang kết nối lại thiết bị."}
+        return {"message": self._t("device.reconnecting")}
 
     def set_device_charging(self, enabled: bool) -> dict[str, Any]:
         with self._state_lock:
             if not self.device["connected"] or not self.device["serial"]:
-                raise NotConnectedError("Chưa có thiết bị Android nào được kết nối.")
+                raise NotConnectedError(self._t("errors.not_connected"))
             serial = self.device["serial"]
 
         self.adb.set_charging(serial, enabled)
         self._charging_disabled = not enabled
-        action = "Bật lại sạc pin" if enabled else "Ngắt sạc pin tạm thời"
+        action = self._t(
+            "battery.charging_on" if enabled else "battery.charging_off"
+        )
         self.events.add(
             "info" if enabled else "warning",
-            f"{action} cho thiết bị ({serial}).",
+            self._t("battery.charging_action", action=action, serial=serial),
             source="adb",
         )
         battery = self._update_battery(serial)
@@ -1356,7 +1420,7 @@ class MobileProxyService:
         self._usage_limit_logged = False
         self.events.add(
             "info",
-            "Đã đặt lại thống kê dung lượng data 4G hôm nay.",
+            self._t("usage.reset"),
             source="app",
         )
         return {"ok": True, "data_usage": self._data_usage_payload()}
@@ -1393,14 +1457,19 @@ class MobileProxyService:
             used_gb = round(today_bytes / (1024**3), 2)
             self.events.add(
                 "warning",
-                f"Đã sử dụng {usage_percent}% ({used_gb} GB / {limit_gb} GB) dữ liệu 4G trong ngày.",
+                self._t(
+                    "usage.warning",
+                    percent=usage_percent,
+                    used=used_gb,
+                    limit=limit_gb,
+                ),
                 source="network",
             )
             self._usage_warning_logged = True
         elif exceeded and not self._usage_limit_logged:
             self.events.add(
                 "error",
-                f"Đã chạm trần giới hạn dữ liệu 4G trong ngày ({limit_gb} GB)! Chú ý phát sinh cước.",
+                self._t("usage.exceeded", limit=limit_gb),
                 source="network",
             )
             self._usage_limit_logged = True
@@ -1420,25 +1489,25 @@ class MobileProxyService:
         with self._state_lock:
             serial = self.device["serial"]
             if not serial or not self.device["connected"]:
-                raise NotConnectedError("Chưa có thiết bị Android nào được kết nối.")
+                raise NotConnectedError(self._t("errors.not_connected"))
             if self._rotating:
-                raise BusyError("Đang xoay IP. Vui lòng chờ hoàn tất.")
+                raise BusyError(self._t("errors.rotating"))
             if self.device["status"] == "preparing":
-                raise BusyError("Thiết bị đang được kết nối.")
+                raise BusyError(self._t("errors.device_connecting"))
         self._spawn(lambda: self._restart_proxy_worker(serial), "restart-proxy")
-        return {"message": "Đang khởi động lại daemon proxy."}
+        return {"message": self._t("proxy.restarting")}
 
     def _restart_proxy_worker(self, serial: str) -> None:
         if not self._op_lock.acquire(timeout=3):
             self.events.add(
                 "warning",
-                "Thiết bị đang xử lý thao tác khác. Chưa thể khởi động lại daemon.",
+                self._t("proxy.busy_restart"),
                 source="proxy",
             )
             return
         try:
             self.events.add(
-                "info", "Đang khởi động lại daemon proxy theo yêu cầu.", source="proxy"
+                "info", self._t("proxy.restart_requested"), source="proxy"
             )
             self.adb.shell(serial, "pkill -f mini_proxy", timeout=8)
             self._sleep(0.4)
@@ -1448,18 +1517,18 @@ class MobileProxyService:
                     self.device["status"] = "ready"
                     self.device["error"] = None
                 self.events.add(
-                    "success", "Đã khởi động lại daemon proxy.", source="proxy"
+                    "success", self._t("proxy.restarted"), source="proxy"
                 )
             else:
                 with self._state_lock:
                     self.device["status"] = "error"
-                    self.device["error"] = "Không khởi động lại được daemon proxy."
+                    self.device["error"] = self._t("proxy.restart_failed")
         finally:
             self._op_lock.release()
 
     def clear_logs(self) -> dict[str, Any]:
         self.events.clear()
         entry = self.events.add(
-            "info", "Đã xóa nhật ký hoạt động.", source="app"
+            "info", self._t("logs.cleared"), source="app"
         )
         return {"last_id": entry["id"]}

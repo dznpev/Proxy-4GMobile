@@ -1,38 +1,76 @@
-const dateTimeFormatter = new Intl.DateTimeFormat('vi-VN', {
+import { translate } from './i18n';
+import type { Locale } from '../locales/en';
+
+/**
+ * Formatters are plain functions called from render paths without access to
+ * the React context, so the active locale is kept in module state and updated
+ * by `I18nProvider` on every render.
+ */
+let activeLocale: Locale = 'en';
+
+export function setFormatLocale(locale: Locale): void {
+  activeLocale = locale;
+}
+
+function t(keyPath: string, params?: Record<string, string | number>): string {
+  return translate(activeLocale, keyPath, params);
+}
+
+const DATE_TIME_OPTIONS: Intl.DateTimeFormatOptions = {
   day: '2-digit',
   month: '2-digit',
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',
   hour12: false,
-});
+};
 
-const dateFormatter = new Intl.DateTimeFormat('vi-VN', {
+const DATE_OPTIONS: Intl.DateTimeFormatOptions = {
   day: '2-digit',
   month: '2-digit',
   year: 'numeric',
-});
+};
 
-const clockFormatter = new Intl.DateTimeFormat('vi-VN', {
+const CLOCK_OPTIONS: Intl.DateTimeFormatOptions = {
   hour: '2-digit',
   minute: '2-digit',
   second: '2-digit',
   hour12: false,
-});
+};
+
+const FORMATTERS: Record<
+  Locale,
+  {
+    dateTime: Intl.DateTimeFormat;
+    date: Intl.DateTimeFormat;
+    clock: Intl.DateTimeFormat;
+  }
+> = {
+  en: {
+    dateTime: new Intl.DateTimeFormat('en-GB', DATE_TIME_OPTIONS),
+    date: new Intl.DateTimeFormat('en-GB', DATE_OPTIONS),
+    clock: new Intl.DateTimeFormat('en-GB', CLOCK_OPTIONS),
+  },
+  vi: {
+    dateTime: new Intl.DateTimeFormat('vi-VN', DATE_TIME_OPTIONS),
+    date: new Intl.DateTimeFormat('vi-VN', DATE_OPTIONS),
+    clock: new Intl.DateTimeFormat('vi-VN', CLOCK_OPTIONS),
+  },
+};
 
 export function formatDateTime(timestamp: number | null | undefined): string {
   if (!timestamp) return '—';
-  return dateTimeFormatter.format(new Date(Number(timestamp) * 1000));
+  return FORMATTERS[activeLocale].dateTime.format(new Date(Number(timestamp) * 1000));
 }
 
 export function formatDate(timestamp: number | null | undefined): string {
   if (!timestamp) return '—';
-  return dateFormatter.format(new Date(Number(timestamp) * 1000));
+  return FORMATTERS[activeLocale].date.format(new Date(Number(timestamp) * 1000));
 }
 
 export function formatClock(timestamp: number | null | undefined): string {
   if (!timestamp) return '—';
-  return clockFormatter.format(new Date(Number(timestamp) * 1000));
+  return FORMATTERS[activeLocale].clock.format(new Date(Number(timestamp) * 1000));
 }
 
 export function formatRelative(
@@ -41,29 +79,37 @@ export function formatRelative(
 ): string {
   if (!timestamp) return '—';
   const diff = Math.max(0, nowSeconds - Number(timestamp));
-  if (diff < 5) return 'vừa xong';
-  if (diff < 60) return `${Math.round(diff)} giây trước`;
-  if (diff < 3600) return `${Math.floor(diff / 60)} phút trước`;
-  if (diff < 86_400) return `${Math.floor(diff / 3600)} giờ trước`;
-  if (diff < 604_800) return `${Math.floor(diff / 86_400)} ngày trước`;
+  if (diff < 5) return t('common.justNow');
+  if (diff < 60) return t('common.secondsAgo', { count: Math.round(diff) });
+  if (diff < 3600) return t('common.minutesAgo', { count: Math.floor(diff / 60) });
+  if (diff < 86_400) return t('common.hoursAgo', { count: Math.floor(diff / 3600) });
+  if (diff < 604_800) return t('common.daysAgo', { count: Math.floor(diff / 86_400) });
   return formatDate(timestamp);
 }
 
 export function formatDuration(seconds: number | null | undefined): string {
   if (seconds == null || Number.isNaN(Number(seconds))) return '—';
   const total = Math.max(0, Math.round(Number(seconds)));
-  if (total < 60) return `${total} giây`;
+  if (total < 60) return t('common.durationSeconds', { count: total });
   const minutes = Math.floor(total / 60);
   const rest = total % 60;
-  if (minutes < 60) return rest ? `${minutes} phút ${rest} giây` : `${minutes} phút`;
+  if (minutes < 60) {
+    return rest
+      ? t('common.durationMinutesSeconds', { minutes, seconds: rest })
+      : t('common.durationMinutes', { count: minutes });
+  }
   const hours = Math.floor(minutes / 60);
   const remainingMinutes = minutes % 60;
   if (hours < 24) {
-    return remainingMinutes ? `${hours} giờ ${remainingMinutes} phút` : `${hours} giờ`;
+    return remainingMinutes
+      ? t('common.durationHoursMinutes', { hours, minutes: remainingMinutes })
+      : t('common.durationHours', { hours });
   }
   const days = Math.floor(hours / 24);
   const remainingHours = hours % 24;
-  return remainingHours ? `${days} ngày ${remainingHours} giờ` : `${days} ngày`;
+  return remainingHours
+    ? t('common.durationDaysHours', { days, hours: remainingHours })
+    : t('common.durationDays', { days });
 }
 
 export function formatLatency(milliseconds: number | null | undefined): string {
@@ -79,12 +125,14 @@ export function formatCountdown(
 ): string {
   if (!timestamp) return '—';
   const diff = Number(timestamp) - nowSeconds;
-  if (diff <= 0) return 'sắp tới';
-  if (diff < 60) return 'dưới 1 phút';
-  if (diff < 3600) return `${Math.ceil(diff / 60)} phút`;
+  if (diff <= 0) return t('common.countdownSoon');
+  if (diff < 60) return t('common.countdownUnderMinute');
+  if (diff < 3600) return t('common.countdownMinutes', { count: Math.ceil(diff / 60) });
   const hours = Math.floor(diff / 3600);
   const minutes = Math.ceil((diff % 3600) / 60);
-  return minutes ? `${hours} giờ ${minutes} phút` : `${hours} giờ`;
+  return minutes
+    ? t('common.countdownHoursMinutes', { hours, minutes })
+    : t('common.countdownHours', { hours });
 }
 
 export function formatLocation(network: {

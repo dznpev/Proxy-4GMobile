@@ -128,3 +128,62 @@ class DemoBackend:
             "forwarded": self._forwarded,
             "uptime_sec": int(time.time() - self._started),
         }
+
+
+def make_demo_history(now: float | None = None) -> list[dict[str, Any]]:
+    """Return a list of realistic sample rotation history records for demo mode."""
+    base = now or time.time()
+    return [
+        {
+            "id": "demo-01",
+            "ts": round(base - 120, 3),
+            "trigger": "manual",
+            "status": "success",
+            "old_ip": "14.187.144.203",
+            "new_ip": "113.161.52.18",
+            "isp": "Viettel",
+            "city": "Hồ Chí Minh",
+            "message": "IP rotated successfully: 113.161.52.18",
+            "changed": True,
+            "duration_sec": 3.2,
+        },
+        {
+            "id": "demo-02",
+            "ts": round(base - 1800, 3),
+            "trigger": "auto",
+            "status": "success",
+            "old_ip": "27.72.101.44",
+            "new_ip": "14.187.144.203",
+            "isp": "VNPT",
+            "city": "Hà Nội",
+            "message": "IP rotated successfully: 14.187.144.203",
+            "changed": True,
+            "duration_sec": 2.8,
+        },
+        {
+            "id": "demo-03",
+            "ts": round(base - 3600, 3),
+            "trigger": "auto",
+            "status": "success",
+            "old_ip": "171.244.38.77",
+            "new_ip": "27.72.101.44",
+            "isp": "Mobifone",
+            "city": "Đà Nẵng",
+            "message": "IP rotated successfully: 27.72.101.44",
+            "changed": True,
+            "duration_sec": 3.5,
+        },
+        {
+            "id": "demo-04",
+            "ts": round(base - 5400, 3),
+            "trigger": "auto",
+            "status": "success",
+            "old_ip": "58.187.190.12",
+            "new_ip": "171.244.38.77",
+            "isp": "Viettel",
+            "city": "Cần Thơ",
+            "message": "IP rotated successfully: 171.244.38.77",
+            "changed": True,
+            "duration_sec": 3.1,
+        },
+    ]

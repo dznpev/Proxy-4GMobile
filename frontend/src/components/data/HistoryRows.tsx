@@ -1,7 +1,8 @@
 import type { HistoryItem } from '../../api/types';
-import { TRIGGER_LABELS } from '../../lib/constants';
+import { TRIGGER_LABEL_KEYS } from '../../lib/constants';
 import { formatDateTime, formatDuration } from '../../lib/format';
 import { historyStatusBadge } from '../../lib/status';
+import { useI18n } from '../../app/providers/I18nProvider';
 import { Badge } from '../ui/Badge';
 
 interface HistoryRowsProps {
@@ -10,17 +11,20 @@ interface HistoryRowsProps {
 }
 
 export function HistoryRows({ items, compact = false }: HistoryRowsProps) {
+  const { t } = useI18n();
+
   return (
     <>
       {items.map((item, index) => {
-        const badge = historyStatusBadge(item.status);
+        const badge = historyStatusBadge(item.status, t);
         const time = formatDateTime(item.ts);
+        const triggerKey = TRIGGER_LABEL_KEYS[item.trigger] ?? 'status.triggers.other';
         return (
           <tr key={item.id ?? `${item.ts}-${index}`}>
             <td className="mono text-sm text-foreground" title={time}>
               {time}
             </td>
-            {compact ? null : <td>{TRIGGER_LABELS[item.trigger] || 'Khác'}</td>}
+            {compact ? null : <td>{t(triggerKey)}</td>}
             {compact ? null : (
               <td className="mono text-sm text-foreground">
                 {item.old_ip || '—'}

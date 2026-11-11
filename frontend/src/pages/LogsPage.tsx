@@ -20,18 +20,20 @@ import {
   SelectValue,
 } from '../components/ui/select';
 import { useDashboard } from '../app/providers/DashboardProvider';
+import { useI18n } from '../app/providers/I18nProvider';
 
 const LEVELS = [
-  { value: 'all', label: 'Tất cả' },
-  { value: 'info', label: 'Thông tin' },
-  { value: 'success', label: 'Thành công' },
-  { value: 'warning', label: 'Cảnh báo' },
-  { value: 'error', label: 'Lỗi' },
-  { value: 'debug', label: 'Debug' },
+  { value: 'all', labelKey: 'logs.all' },
+  { value: 'info', labelKey: 'logs.info' },
+  { value: 'success', labelKey: 'logs.success' },
+  { value: 'warning', labelKey: 'logs.warning' },
+  { value: 'error', labelKey: 'logs.error' },
+  { value: 'debug', labelKey: 'logs.debug' },
 ];
 
 export function LogsPage() {
   const { logs, logsLoaded, clearingLogs, clearLogs } = useDashboard();
+  const { t } = useI18n();
   const [level, setLevel] = useState('all');
   const [query, setQuery] = useState('');
   const [follow, setFollow] = useState(true);
@@ -61,11 +63,9 @@ export function LogsPage() {
       <div className="page-lead">
         <div>
           <h2 className="page-section-title" id="logs-page-title">
-            Nhật ký hoạt động
+            {t('logs.title')}
           </h2>
-          <p className="page-lead-text">
-            Sự kiện ADB, daemon, mạng và xoay IP được ghi cục bộ, tối đa 500 dòng gần nhất.
-          </p>
+          <p className="page-lead-text">{t('logs.lead')}</p>
         </div>
       </div>
 
@@ -75,10 +75,13 @@ export function LogsPage() {
             id="log-level-label"
             className="whitespace-nowrap text-sm font-medium text-(--text-secondary)"
           >
-            Mức độ
+            {t('logs.level')}
           </span>
           <Select
-            items={LEVELS}
+            items={LEVELS.map((item) => ({
+              value: item.value,
+              label: t(item.labelKey),
+            }))}
             value={level}
             onValueChange={(value) => {
               if (value !== null) setLevel(value);
@@ -94,7 +97,7 @@ export function LogsPage() {
             <SelectPopup>
               {LEVELS.map((item) => (
                 <SelectItem key={item.value} value={item.value}>
-                  {item.label}
+                  {t(item.labelKey)}
                 </SelectItem>
               ))}
             </SelectPopup>
@@ -105,12 +108,12 @@ export function LogsPage() {
           htmlFor="log-search"
         >
           <span className="whitespace-nowrap text-sm font-medium text-(--text-secondary)">
-            Tìm kiếm
+            {t('logs.search')}
           </span>
           <Input
             id="log-search"
             type="search"
-            placeholder="Nội dung nhật ký"
+            placeholder={t('logs.searchPlaceholder')}
             autoComplete="off"
             className="w-auto min-w-[220px] max-[640px]:w-full"
             value={query}
@@ -127,11 +130,13 @@ export function LogsPage() {
             aria-labelledby="log-follow-label"
             onCheckedChange={(checked) => setFollow(checked)}
           />
-          <span id="log-follow-label">Tự cuộn</span>
+          <span id="log-follow-label">{t('logs.follow')}</span>
         </label>
         <div className="toolbar-end">
           <span className="meta-text">
-            {items.length === total ? `${total} dòng` : `${items.length} / ${total} dòng`}
+            {items.length === total
+              ? t('logs.count', { count: total })
+              : t('logs.countFiltered', { shown: items.length, total })}
           </span>
           <Button
             variant="outline"
@@ -139,17 +144,17 @@ export function LogsPage() {
             onClick={() => void clearLogs()}
           >
             {clearingLogs ? null : <Icon name="trash" />}
-            <span>Xóa nhật ký</span>
+            <span>{t('logs.clear')}</span>
           </Button>
         </div>
       </div>
 
       <Card render={<article />} flush aria-labelledby="log-console-title">
         <h2 className="visually-hidden" id="log-console-title">
-          Nhật ký hoạt động chi tiết
+          {t('logs.tableTitle')}
         </h2>
         <div className="log-console" ref={consoleRef}>
-          <LogList items={items} ariaLabel="Nhật ký hoạt động chi tiết" />
+          <LogList items={items} ariaLabel={t('logs.ariaLabel')} />
           {empty ? (
             <Empty className="gap-2 px-5 py-12 text-(--text-inverse)">
               <EmptyMedia
@@ -160,12 +165,12 @@ export function LogsPage() {
               </EmptyMedia>
               <EmptyHeader>
                 <EmptyTitle className="text-(--text-inverse)">
-                  {filtersActive ? 'Không có dòng phù hợp' : 'Chưa có nhật ký'}
+                  {filtersActive ? t('logs.emptyFilteredTitle') : t('logs.emptyTitle')}
                 </EmptyTitle>
                 <EmptyDescription className="text-(--log-time)">
                   {filtersActive
-                    ? 'Thử đổi mức độ hoặc từ khóa tìm kiếm.'
-                    : 'Hoạt động của proxy sẽ xuất hiện ở đây.'}
+                    ? t('logs.emptyFilteredDescription')
+                    : t('logs.emptyDescription')}
                 </EmptyDescription>
               </EmptyHeader>
             </Empty>
