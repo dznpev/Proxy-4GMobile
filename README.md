@@ -15,6 +15,10 @@
 
 The dashboard and backend logs are fully bilingual (English and Vietnamese), with English as the default language.
 
+<p align="center">
+  <img src="assets/screenshots/overview.png" alt="4G Mobile Proxy Dashboard Overview" width="850">
+</p>
+
 ## Table of Contents
 
 - [Features](#features)
@@ -216,6 +220,12 @@ When running interactively (without `--headless`):
 | **IP History** | Full rotation table with success/failure filters, timestamps, old/new IPs, ISP, location, duration, and clear-history action. |
 | **Logs** | The latest 500 log lines with severity filters, search, auto-scroll, and clear action. |
 | **Settings** | Automatic rotation, interval, rotation method, daily data limit, display language, API endpoints, and data directory. |
+
+### Screenshots
+
+| Device Management & Thermal Protection | IP Rotation History & Analytics |
+| :---: | :---: |
+| <img src="assets/screenshots/device.png" alt="Device Page" width="450"> | <img src="assets/screenshots/history.png" alt="IP History Page" width="450"> |
 
 The interface uses hash routing (`#/overview`, `#/device`, `#/history`, `#/logs`, `#/settings`), so it works when served from a local static build.
 
