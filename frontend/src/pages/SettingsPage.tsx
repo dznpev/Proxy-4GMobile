@@ -386,39 +386,37 @@ export function SettingsPage() {
             </CardTitle>
           </div>
         </CardHeader>
-        <div className="px-5 py-2">
+        <div className="px-5 pb-5 pt-1">
           <p className="meta-text mb-4">{t('settings.languageDescription')}</p>
           <RadioGroup
-            className="gap-2"
+            className="flex flex-row flex-wrap items-center gap-3 sm:gap-4"
             name="settings-language"
             value={locale}
             aria-labelledby="settings-language-title"
             onValueChange={handleLanguageChange}
           >
-            <label className="radio-row">
+            <label className="inline-flex min-h-[42px] cursor-pointer items-center gap-2.5 rounded-lg border border-border px-4 py-2 transition-colors hover:bg-accent/60 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-accent">
               <Radio
-                className="mt-[3px]"
                 value="en"
                 aria-labelledby="settings-language-en-label"
               />
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
                 <FlagIcon code="us" />
-                <strong id="settings-language-en-label">
+                <span id="settings-language-en-label">
                   {t('settings.languageEnglish')}
-                </strong>
+                </span>
               </span>
             </label>
-            <label className="radio-row">
+            <label className="inline-flex min-h-[42px] cursor-pointer items-center gap-2.5 rounded-lg border border-border px-4 py-2 transition-colors hover:bg-accent/60 has-[[data-checked]]:border-primary has-[[data-checked]]:bg-accent">
               <Radio
-                className="mt-[3px]"
                 value="vi"
                 aria-labelledby="settings-language-vi-label"
               />
-              <span className="inline-flex items-center gap-2">
+              <span className="inline-flex items-center gap-2 text-sm font-medium">
                 <FlagIcon code="vn" />
-                <strong id="settings-language-vi-label">
+                <span id="settings-language-vi-label">
                   {t('settings.languageVietnamese')}
-                </strong>
+                </span>
               </span>
             </label>
           </RadioGroup>

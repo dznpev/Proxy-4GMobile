@@ -29,20 +29,24 @@ export function FlagIcon({
   const h = size ? (typeof size === 'number' ? Math.round((size * 3) / 4) : size) : (height ?? 12);
 
   return (
-    <svg
-      viewBox="0 0 16 12"
-      width={w}
-      height={h}
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-      data-flag={normalized}
+    <span
       className={cn(
-        'inline-block shrink-0 rounded-[2px] overflow-hidden align-middle shadow-[0_0_0_1px_rgba(0,0,0,0.12)]',
+        'inline-flex shrink-0 items-center justify-center rounded-[2px] overflow-hidden border border-black/15 dark:border-white/20 leading-none select-none',
         className,
       )}
-      {...props}
+      style={{ width: w, height: h }}
+      aria-hidden="true"
+      data-flag={normalized}
     >
+      <svg
+        viewBox="0 0 16 12"
+        width={w}
+        height={h}
+        fill="none"
+        xmlns="http://www.w3.org/2000/svg"
+        className="block"
+        {...props}
+      >
       {isVn ? (
         // Vietnam (VN) flag: Red field (#DA251D) with central golden yellow 5-point star (#FFFF00)
         <>
@@ -68,6 +72,7 @@ export function FlagIcon({
         </>
       )}
     </svg>
+    </span>
   );
 }
 
