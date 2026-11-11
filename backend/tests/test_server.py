@@ -290,6 +290,26 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(status, 404)
         self.assertEqual(payload["error"]["code"], "not_found")
 
+    def test_print_banner_bilingual(self) -> None:
+        import io
+        from contextlib import redirect_stdout
+        from auto_mobile_proxy import print_banner
+
+        buffer_en = io.StringIO()
+        with redirect_stdout(buffer_en):
+            print_banner(self.server, self.config, demo=True, lang="en")
+        output_en = buffer_en.getvalue()
+        self.assertIn("Data dir", output_en)
+        self.assertIn("Commands: r = rotate IP", output_en)
+        self.assertIn("[DEMO]", output_en)
+
+        buffer_vi = io.StringIO()
+        with redirect_stdout(buffer_vi):
+            print_banner(self.server, self.config, demo=False, lang="vi")
+        output_vi = buffer_vi.getvalue()
+        self.assertIn("Dữ liệu", output_vi)
+        self.assertIn("Lệnh: r = xoay IP", output_vi)
+
 
 if __name__ == "__main__":
     unittest.main()

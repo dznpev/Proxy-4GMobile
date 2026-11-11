@@ -189,6 +189,18 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "errors.app_stopping": "The application is stopping.",
         "errors.device_connecting": "The device is connecting.",
+        # CLI console
+        "cli.banner.dashboard": "Dashboard",
+        "cli.banner.proxy": "Proxy HTTP",
+        "cli.banner.data": "Data dir",
+        "cli.banner.commands": "Commands: r = rotate IP · c = check connection · q = quit",
+        "cli.rotate.started": "[*] IP rotation started. Track progress on the dashboard.",
+        "cli.check.updated": "[OK] Connection status updated.",
+        "cli.command.invalid": "[!] Invalid command. Type h for help.",
+        "cli.server_error": "[X] Could not start dashboard at {host}:{port}: {error}\n    Check if the port is already in use and try again.",
+        "cli.headless": "[*] Headless mode. Press Ctrl+C to stop.",
+        "cli.stopping": "\n[*] Stopping application...",
+        "cli.stopped": "[OK] Stopped.",
     },
     "vi": {
         # Application lifecycle
@@ -362,6 +374,18 @@ MESSAGES: dict[str, dict[str, str]] = {
         ),
         "errors.app_stopping": "Ứng dụng đang dừng.",
         "errors.device_connecting": "Thiết bị đang được kết nối.",
+        # CLI console
+        "cli.banner.dashboard": "Dashboard",
+        "cli.banner.proxy": "Proxy HTTP",
+        "cli.banner.data": "Dữ liệu",
+        "cli.banner.commands": "Lệnh: r = xoay IP · c = kiểm tra kết nối · q = thoát",
+        "cli.rotate.started": "[*] Đã bắt đầu xoay IP. Theo dõi tiến trình trên dashboard.",
+        "cli.check.updated": "[OK] Đã cập nhật trạng thái kết nối.",
+        "cli.command.invalid": "[!] Lệnh không hợp lệ. Gõ h để xem trợ giúp.",
+        "cli.server_error": "[X] Không mở được dashboard tại {host}:{port}: {error}\n    Kiểm tra cổng đã bị chiếm hay chưa rồi thử lại.",
+        "cli.headless": "[*] Chế độ headless. Nhấn Ctrl+C để dừng.",
+        "cli.stopping": "\n[*] Đang dừng ứng dụng...",
+        "cli.stopped": "[OK] Đã dừng.",
     },
 }
 
