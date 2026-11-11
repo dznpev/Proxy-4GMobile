@@ -15,6 +15,10 @@
 
 Dashboard và nhật ký backend hỗ trợ đầy đủ hai ngôn ngữ Anh và Việt, mặc định là tiếng Anh.
 
+<p align="center">
+  <img src="assets/screenshots/overview.png" alt="Giao diện Tổng quan 4G Mobile Proxy Dashboard" width="850">
+</p>
+
 ## Mục lục
 
 - [Tính năng](#tính-năng)
@@ -216,6 +220,12 @@ Khi chạy tương tác (không có `--headless`):
 | **Lịch sử IP** | Bảng đầy đủ các lần xoay với bộ lọc thành công/thất bại, thời gian, IP cũ/mới, nhà mạng, vị trí, thời lượng và thao tác xóa lịch sử. |
 | **Nhật ký** | 500 dòng nhật ký gần nhất với bộ lọc mức độ, tìm kiếm, tự cuộn và xóa nhật ký. |
 | **Cài đặt** | Tự động xoay, chu kỳ, phương thức xoay, giới hạn dung lượng 4G hàng ngày, ngôn ngữ hiển thị, thông tin API và thư mục dữ liệu. |
+
+### Hình ảnh trực quan
+
+| Quản lý thiết bị & Bảo vệ nhiệt độ pin | Lịch sử xoay IP & Thống kê |
+| :---: | :---: |
+| <img src="assets/screenshots/device.png" alt="Trang Thiết bị" width="450"> | <img src="assets/screenshots/history.png" alt="Trang Lịch sử IP" width="450"> |
 
 Giao diện dùng hash routing (`#/overview`, `#/device`, `#/history`, `#/logs`, `#/settings`) nên hoạt động khi phục vụ từ bản build tĩnh cục bộ.
 
