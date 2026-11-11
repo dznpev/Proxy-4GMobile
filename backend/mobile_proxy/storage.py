@@ -9,6 +9,8 @@ from datetime import date
 from pathlib import Path
 from typing import Any
 
+from .i18n import get_message
+
 DEFAULT_SETTINGS: dict[str, Any] = {
     "auto_rotate_enabled": False,
     "auto_rotate_interval_min": 30,
@@ -43,12 +45,14 @@ def _read_json(path: Path, fallback: Any) -> Any:
         return fallback
 
 
-def validate_settings(payload: dict[str, Any], base: dict[str, Any]) -> dict[str, Any]:
+def validate_settings(
+    payload: dict[str, Any], base: dict[str, Any], lang: str = "en"
+) -> dict[str, Any]:
     candidate = dict(base)
     if "auto_rotate_enabled" in payload:
         value = payload["auto_rotate_enabled"]
         if not isinstance(value, bool):
-            raise ValueError("Tự động xoay phải là giá trị bật hoặc tắt.")
+            raise ValueError(get_message("validation.auto_rotate_bool", lang))
         candidate["auto_rotate_enabled"] = value
 
     if "auto_rotate_interval_min" in payload:
@@ -56,17 +60,22 @@ def validate_settings(payload: dict[str, Any], base: dict[str, Any]) -> dict[str
         try:
             interval = int(raw)
         except (TypeError, ValueError) as exc:
-            raise ValueError("Chu kỳ xoay phải là số phút.") from exc
+            raise ValueError(get_message("validation.interval_int", lang)) from exc
         if interval < MIN_INTERVAL_MIN or interval > MAX_INTERVAL_MIN:
             raise ValueError(
-                f"Chu kỳ xoay phải nằm trong khoảng {MIN_INTERVAL_MIN}-{MAX_INTERVAL_MIN} phút."
+                get_message(
+                    "validation.interval_range",
+                    lang,
+                    min=MIN_INTERVAL_MIN,
+                    max=MAX_INTERVAL_MIN,
+                )
             )
         candidate["auto_rotate_interval_min"] = interval
 
     if "rotate_method" in payload:
         method = payload["rotate_method"]
         if method not in ROTATE_METHODS:
-            raise ValueError("Phương thức xoay không hợp lệ.")
+            raise ValueError(get_message("validation.method_invalid", lang))
         candidate["rotate_method"] = method
 
     if "daily_data_limit_gb" in payload:
@@ -74,15 +83,15 @@ def validate_settings(payload: dict[str, Any], base: dict[str, Any]) -> dict[str
         try:
             limit = float(raw_limit)
         except (TypeError, ValueError) as exc:
-            raise ValueError("Giới hạn dung lượng phải là số GB.") from exc
+            raise ValueError(get_message("validation.limit_float", lang)) from exc
         if limit < 0 or limit > 1000:
-            raise ValueError("Giới hạn dung lượng phải từ 0 đến 1000 GB.")
+            raise ValueError(get_message("validation.limit_range", lang))
         candidate["daily_data_limit_gb"] = round(limit, 2)
 
     if "language" in payload:
         language = payload["language"]
         if language not in LANGUAGES:
-            raise ValueError("Ngôn ngữ không hợp lệ.")
+            raise ValueError(get_message("validation.language_invalid", lang))
         candidate["language"] = language
 
     return candidate

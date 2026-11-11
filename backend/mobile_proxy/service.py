@@ -1272,7 +1272,7 @@ class MobileProxyService:
     def update_settings(self, payload: dict[str, Any]) -> dict[str, Any]:
         with self._state_lock:
             current = dict(self.settings)
-        candidate = validate_settings(payload, current)
+        candidate = validate_settings(payload, current, lang=self.language)
         language_changed = current.get("language") != candidate["language"]
         with self._state_lock:
             self.settings = candidate

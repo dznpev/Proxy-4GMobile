@@ -10,6 +10,7 @@ from typing import Any
 from urllib.parse import parse_qs, unquote, urlparse
 
 from .config import APP_NAME, APP_VERSION, WEB_DIR, AppConfig
+from .i18n import get_message
 from .service import BusyError, MobileProxyService, NotConnectedError, ServiceError
 
 STATIC_TYPES = {
@@ -142,7 +143,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 payload = self.service.restart_proxy()
                 self._json(202, {"ok": True, **payload})
             elif path.startswith("/api/"):
-                self._json_error(404, "not_found", "Không tìm thấy API.")
+                lang = getattr(self.service, "language", "en")
+                self._json_error(404, "not_found", get_message("api.not_found", lang))
             else:
                 self._not_found()
         except (BrokenPipeError, ConnectionResetError):
@@ -166,7 +168,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 self.do_POST()
             elif path.startswith("/api/"):
                 self._discard_request_body()
-                self._json_error(404, "not_found", "Không tìm thấy API.")
+                lang = getattr(self.service, "language", "en")
+                self._json_error(404, "not_found", get_message("api.not_found", lang))
             else:
                 self._discard_request_body()
                 self._not_found()

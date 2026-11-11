@@ -201,6 +201,17 @@ MESSAGES: dict[str, dict[str, str]] = {
         "cli.headless": "[*] Headless mode. Press Ctrl+C to stop.",
         "cli.stopping": "\n[*] Stopping application...",
         "cli.stopped": "[OK] Stopped.",
+        # Validation and API errors
+        "validation.auto_rotate_bool": "Auto-rotate must be a boolean value.",
+        "validation.interval_int": "Rotation interval must be an integer number of minutes.",
+        "validation.interval_range": "Rotation interval must be between {min} and {max} minutes.",
+        "validation.method_invalid": "Invalid rotation method.",
+        "validation.limit_float": "Daily data limit must be a number in GB.",
+        "validation.limit_range": "Daily data limit must be between 0 and 1000 GB.",
+        "validation.language_invalid": "Invalid language.",
+        "api.invalid_json": "Invalid JSON body.",
+        "api.not_found": "API endpoint not found.",
+        "api.page_not_found": "Page not found.",
     },
     "vi": {
         # Application lifecycle
@@ -386,6 +397,17 @@ MESSAGES: dict[str, dict[str, str]] = {
         "cli.headless": "[*] Chế độ headless. Nhấn Ctrl+C để dừng.",
         "cli.stopping": "\n[*] Đang dừng ứng dụng...",
         "cli.stopped": "[OK] Đã dừng.",
+        # Validation and API errors
+        "validation.auto_rotate_bool": "Tự động xoay phải là giá trị bật hoặc tắt.",
+        "validation.interval_int": "Chu kỳ xoay phải là số phút.",
+        "validation.interval_range": "Chu kỳ xoay phải nằm trong khoảng {min}-{max} phút.",
+        "validation.method_invalid": "Phương thức xoay không hợp lệ.",
+        "validation.limit_float": "Giới hạn dung lượng phải là số GB.",
+        "validation.limit_range": "Giới hạn dung lượng phải từ 0 đến 1000 GB.",
+        "validation.language_invalid": "Ngôn ngữ không hợp lệ.",
+        "api.invalid_json": "JSON không hợp lệ.",
+        "api.not_found": "Không tìm thấy API.",
+        "api.page_not_found": "Không tìm thấy trang.",
     },
 }
 

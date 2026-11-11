@@ -270,7 +270,7 @@ Errors use a consistent shape:
   "ok": false,
   "error": {
     "code": "validation_error",
-    "message": "Ngôn ngữ không hợp lệ."
+    "message": "Invalid language."
   }
 }
 ```

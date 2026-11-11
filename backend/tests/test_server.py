@@ -179,12 +179,20 @@ class DashboardServerTests(unittest.TestCase):
         )
         self.assertEqual(status, 422)
         self.assertEqual(payload["error"]["code"], "validation_error")
+        self.assertEqual(payload["error"]["message"], "Ngôn ngữ không hợp lệ.")
 
         status, payload = self.json_request(
             "/api/settings", method="PATCH", payload={"language": "en"}
         )
         self.assertEqual(status, 200)
         self.assertEqual(payload["settings"]["language"], "en")
+
+        status, payload = self.json_request(
+            "/api/settings", method="PATCH", payload={"language": "invalid"}
+        )
+        self.assertEqual(status, 422)
+        self.assertEqual(payload["error"]["code"], "validation_error")
+        self.assertEqual(payload["error"]["message"], "Invalid language.")
 
         status, payload = self.json_request("/api/rotate", method="PATCH", payload={})
         self.assertEqual(status, 404)
