@@ -92,12 +92,18 @@ flowchart LR
 
 | Component | Requirement |
 | --- | --- |
-| Operating system | Windows 10/11, macOS 12+, or a modern Linux distribution |
+| Operating system | Windows 10/11, macOS 12+, or Linux (Ubuntu, Debian, Fedora, etc.) |
 | Python | **3.11+** with `pip` |
 | Node.js | **20+** with npm (only needed to build or develop the dashboard) |
-| Android Platform Tools | `adb` available in `PATH` |
+| Android Platform Tools | `adb` available in `PATH` (or detected in standard SDK directories) |
 | Phone | Android device with USB debugging enabled, a USB cable, and an active 4G/LTE SIM |
 | Root | **Not required.** Optional for hardware-level charge cutoff |
+
+### Platform Notes & ADB Setup
+
+- **Windows:** Download Android Platform Tools or install via Android Studio. If your device isn't recognized, install OEM / Google USB drivers in Device Manager.
+- **macOS:** Install with Homebrew: `brew install android-platform-tools`. *Note:* Quit background file transfer apps (*Android File Transfer*, *Samsung Smart Switch*, *OpenMTP*) as they lock the USB interface.
+- **Linux:** Install via package manager: `sudo apt install adb android-sdk-platform-tools-common`. Add your user to the `plugdev` group (`sudo usermod -aG plugdev $USER`) and re-plug USB to avoid `no permissions` udev errors.
 
 Install the Python dependency:
 
@@ -384,6 +390,8 @@ npm run build
 | Proxy daemon is not running | Open **Device** and click **Restart daemon**; if that fails, click **Reconnect**. |
 | No Internet after rotation | Ensure Wi-Fi is off, airplane mode is off again, and the SIM has signal and data allowance. |
 | Port already in use | Change `--proxy-port` or `--control-port`, or stop the process using the port. |
+| Linux: `no permissions` on device | Install `android-sdk-platform-tools-common` and run `sudo usermod -aG plugdev $USER`, then re-plug USB cable. |
+| macOS: device offline or busy | Quit background apps like *Android File Transfer* or *Samsung Smart Switch* that lock the USB port. |
 | Phone gets hot | Keep it ventilated. The app warns above 40°C and pauses charging at 45°C; root enables hardware cutoff. |
 | Language did not change old logs | Existing log lines are immutable. New events use the selected language immediately. |
 

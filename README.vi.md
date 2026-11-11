@@ -92,12 +92,18 @@ flowchart LR
 
 | Thành phần | Yêu cầu |
 | --- | --- |
-| Hệ điều hành | Windows 10/11, macOS 12+ hoặc bản Linux hiện đại |
+| Hệ điều hành | Windows 10/11, macOS 12+ hoặc Linux (Ubuntu, Debian, Fedora,...) |
 | Python | **3.11+** kèm `pip` |
 | Node.js | **20+** kèm npm (chỉ cần khi build hoặc phát triển dashboard) |
-| Android Platform Tools | `adb` có trong `PATH` |
+| Android Platform Tools | `adb` có trong `PATH` (hoặc tự phát hiện trong thư mục SDK chuẩn) |
 | Điện thoại | Thiết bị Android đã bật gỡ lỗi USB, có cáp USB và SIM 4G/LTE đang hoạt động |
 | Root | **Không bắt buộc.** Tùy chọn khi muốn ngắt sạc ở mức phần cứng |
+
+### Lưu ý theo hệ điều hành & Cài đặt ADB
+
+- **Windows:** Tải Android Platform Tools hoặc cài qua Android Studio. Nếu không nhận thiết bị, hãy cài OEM / Google USB Driver trong Device Manager.
+- **macOS:** Cài qua Homebrew: `brew install android-platform-tools`. *Lưu ý:* Hãy thoát các ứng dụng truyền file như *Android File Transfer*, *Samsung Smart Switch*, hoặc *OpenMTP* vì chúng chiếm giữ cổng USB.
+- **Linux:** Cài qua trình quản lý gói: `sudo apt install adb android-sdk-platform-tools-common`. Thêm người dùng vào nhóm `plugdev` (`sudo usermod -aG plugdev $USER`) và cắm lại cáp USB để tránh lỗi quyền `no permissions`.
 
 Cài đặt thư viện Python:
 
@@ -384,6 +390,8 @@ npm run build
 | Daemon proxy không chạy | Mở **Thiết bị** và bấm **Khởi động lại daemon**; nếu vẫn lỗi, bấm **Kết nối lại**. |
 | Không có Internet sau khi xoay | Kiểm tra Wi-Fi đã tắt, chế độ máy bay đã tắt lại, SIM còn sóng và còn dung lượng. |
 | Cổng đang bận | Đổi `--proxy-port` hoặc `--control-port`, hoặc dừng tiến trình đang dùng cổng. |
+| Linux: `no permissions` với thiết bị | Cài `android-sdk-platform-tools-common` và chạy `sudo usermod -aG plugdev $USER`, sau đó cắm lại cáp USB. |
+| macOS: thiết bị báo bận hoặc offline | Thoát các ứng dụng chạy ngầm như *Android File Transfer* hoặc *Samsung Smart Switch* đang giữ cổng USB. |
 | Điện thoại nóng | Đặt nơi thoáng mát. Ứng dụng cảnh báo trên 40°C và tạm dừng sạc ở 45°C; root cho phép ngắt sạc phần cứng. |
 | Đổi ngôn ngữ nhưng nhật ký cũ không đổi | Dòng nhật ký cũ được giữ nguyên. Sự kiện mới dùng ngôn ngữ đã chọn ngay lập tức. |
 
