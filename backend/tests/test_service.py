@@ -355,6 +355,16 @@ Current Battery Service state:
             self.assertFalse(adb.is_forwarded("serial123", 9090))
             self.assertFalse(adb.is_forwarded("serial123", 8081))
 
+    def test_resolve_adb_path(self) -> None:
+        from unittest.mock import patch
+        from backend.mobile_proxy.adb import resolve_adb_path
+
+        with patch("shutil.which", return_value="/custom/bin/adb"):
+            self.assertEqual(resolve_adb_path("adb"), "/custom/bin/adb")
+
+        with patch("shutil.which", return_value=None), patch("pathlib.Path.is_file", return_value=False):
+            self.assertEqual(resolve_adb_path("adb"), "adb")
+
 
     def test_parse_proc_net_dev(self) -> None:
         sample_proc = """
