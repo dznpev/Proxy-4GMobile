@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -47,6 +48,21 @@ SECURITY_HEADERS = {
 
 MAX_BODY_BYTES = 64 * 1024
 
+# Client-side disconnects are normal traffic, not server faults. socketserver's
+# default handle_error prints a full traceback for any exception, which turns a
+# browser closing a keep-alive socket into a scary-looking crash dump.
+CLIENT_DISCONNECT_ERRORS: tuple[type[BaseException], ...] = (
+    ConnectionResetError,  # WinError 10054 - peer reset the socket
+    BrokenPipeError,  # peer vanished while the server was writing
+    ConnectionAbortedError,  # WinError 10053 - local software aborted the connection
+    TimeoutError,  # socket.timeout - peer too slow, or idle socket expired
+)
+
+
+def _is_client_disconnect(exc: BaseException) -> bool:
+    """True when the exception means the peer went away, not that the server broke."""
+    return isinstance(exc, CLIENT_DISCONNECT_ERRORS)
+
 
 class _BadRequest(Exception):
     def __init__(self, message: str, status: int = 400) -> None:
@@ -58,8 +74,20 @@ class _ThreadingServer(ThreadingHTTPServer):
     allow_reuse_address = True
     daemon_threads = True
 
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        """Drop client disconnects; keep the traceback for real server faults."""
+        exc = sys.exc_info()[1]
+        if exc is not None and _is_client_disconnect(exc):
+            return
+        super().handle_error(request, client_address)
+
 
 class _DashboardHandler(BaseHTTPRequestHandler):
+    # Close idle keep-alive connections so they do not pin a Python thread
+    # forever. The dashboard polls every 2.5 s (10 s when the tab is hidden),
+    # so 60 s never fires during normal use.
+    timeout = 60
+
     server_version = f"MobileProxy/{APP_VERSION}"
     sys_version = ""
     protocol_version = "HTTP/1.1"
@@ -105,7 +133,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 self._json_error(404, "not_found", "Không tìm thấy API.")
             else:
                 self._not_found()
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # The socket is unusable (or already timed out): close it instead of
+            # letting handle() read the next request line from a poisoned stream.
+            self.close_connection = True
             return
         except Exception as exc:  # pragma: no cover - defensive
             self._handle_unexpected(exc)
@@ -147,7 +178,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 self._json_error(404, "not_found", get_message("api.not_found", lang))
             else:
                 self._not_found()
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # The socket is unusable (or already timed out): close it instead of
+            # letting handle() read the next request line from a poisoned stream.
+            self.close_connection = True
             return
         except _BadRequest as exc:
             self._json_error(exc.status, "invalid_request", str(exc))
@@ -173,7 +207,10 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             else:
                 self._discard_request_body()
                 self._not_found()
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # The socket is unusable (or already timed out): close it instead of
+            # letting handle() read the next request line from a poisoned stream.
+            self.close_connection = True
             return
         except Exception as exc:  # pragma: no cover - defensive
             self._handle_unexpected(exc)
@@ -303,7 +340,8 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             pass
         try:
             self._json_error(500, "internal_error", "Lỗi nội bộ của dashboard.")
-        except (BrokenPipeError, ConnectionResetError):
+        except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            self.close_connection = True
             pass
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002

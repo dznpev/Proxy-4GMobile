@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import io
 import json
 import re
+import socket
+import struct
 import tempfile
 import time
 import unittest
+from contextlib import redirect_stderr
 from http.client import HTTPConnection
 from pathlib import Path
 from urllib.error import HTTPError
@@ -77,6 +81,15 @@ class DashboardServerTests(unittest.TestCase):
     ) -> tuple[int, dict]:
         status, _, body = self.request(path, method=method, payload=payload)
         return status, json.loads(body)
+
+    def raw_socket(self) -> socket.socket:
+        """Open a raw TCP connection to the dashboard."""
+        return socket.create_connection(("127.0.0.1", self.port), timeout=10)
+
+    def abortive_close(self, sock: socket.socket) -> None:
+        """Close a socket with SO_LINGER=0 so the peer receives a TCP RST."""
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+        sock.close()
 
     def test_dashboard_index_and_assets_are_served(self) -> None:
         index_path = WEB_DIR / "index.html"
@@ -234,6 +247,205 @@ class DashboardServerTests(unittest.TestCase):
             self.assertTrue(json.loads(response.read())["ok"])
         finally:
             connection.close()
+
+    def test_client_reset_does_not_print_traceback(self) -> None:
+        """A client that resets a keep-alive connection must not produce a traceback."""
+        buffer = io.StringIO()
+        sock = self.raw_socket()
+        try:
+            sock.sendall(b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            sock.recv(65535)
+            # Let the server finish writing and go back to waiting for the next
+            # request on this keep-alive connection - that is the exact moment a
+            # real browser reset arrives.
+            time.sleep(0.3)
+            with redirect_stderr(buffer):
+                self.abortive_close(sock)
+                time.sleep(0.5)
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
+        stderr = buffer.getvalue()
+        self.assertNotIn("Traceback", stderr)
+        self.assertNotIn("ConnectionResetError", stderr)
+        self.assertNotIn("Exception occurred during processing", stderr)
+
+    def test_unexpected_error_still_prints_traceback(self) -> None:
+        """Real server-side exceptions must still surface as a traceback."""
+        buffer = io.StringIO()
+        with redirect_stderr(buffer):
+            try:
+                raise RuntimeError("synthetic server failure")
+            except RuntimeError:
+                self.server.httpd.handle_error(None, ("127.0.0.1", 1))
+
+        stderr = buffer.getvalue()
+        self.assertIn("synthetic server failure", stderr)
+        self.assertIn("Traceback", stderr)
+
+    def test_server_still_serves_requests_after_client_reset(self) -> None:
+        """Swallowing a client reset must not break later requests."""
+        sock = self.raw_socket()
+        try:
+            sock.sendall(b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            sock.recv(65535)
+            time.sleep(0.3)
+            self.abortive_close(sock)
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
+        time.sleep(0.3)
+
+        status, payload = self.json_request("/api/status")
+        self.assertEqual(status, 200)
+        self.assertIn("app", payload)
+
+    def test_dashboard_handler_has_idle_timeout(self) -> None:
+        """Idle keep-alive connections must be reaped, not held open forever."""
+        from backend.mobile_proxy import server as server_module
+
+        self.assertEqual(server_module._DashboardHandler.timeout, 60)
+
+    def test_idle_keepalive_connection_is_reaped(self) -> None:
+        """A connection that sends nothing must be closed by the server."""
+        from backend.mobile_proxy import server as server_module
+
+        original = server_module._DashboardHandler.timeout
+        server_module._DashboardHandler.timeout = 1
+        buffer = io.StringIO()
+        try:
+            sock = self.raw_socket()
+            with redirect_stderr(buffer):
+                sock.settimeout(10)
+                data = sock.recv(65535)
+                sock.close()
+        finally:
+            server_module._DashboardHandler.timeout = original
+
+        self.assertEqual(data, b"")
+        self.assertNotIn("Traceback", buffer.getvalue())
+
+    def test_keepalive_still_works_after_one_connection_is_reset(self) -> None:
+        """One aborted connection must not affect another live keep-alive connection."""
+        survivor = HTTPConnection("127.0.0.1", self.port, timeout=10)
+        try:
+            survivor.request("GET", "/api/health")
+            response = survivor.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertTrue(json.loads(response.read())["ok"])
+
+            victim = self.raw_socket()
+            try:
+                victim.sendall(b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+                victim.recv(65535)
+                time.sleep(0.3)
+                self.abortive_close(victim)
+            finally:
+                try:
+                    victim.close()
+                except OSError:
+                    pass
+            time.sleep(0.3)
+
+            # The surviving connection is still usable, and still keep-alive.
+            survivor.request("GET", "/api/health")
+            response = survivor.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertTrue(json.loads(response.read())["ok"])
+
+            survivor.request("GET", "/api/settings")
+            response = survivor.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertIn("settings", json.loads(response.read()))
+        finally:
+            survivor.close()
+
+    def test_client_disconnect_classification(self) -> None:
+        """Only peer-gone errors are classified as disconnects; real faults are not."""
+        from backend.mobile_proxy import server as server_module
+
+        self.assertTrue(server_module._is_client_disconnect(ConnectionResetError()))
+        self.assertTrue(server_module._is_client_disconnect(BrokenPipeError()))
+        self.assertTrue(server_module._is_client_disconnect(ConnectionAbortedError()))
+        self.assertTrue(server_module._is_client_disconnect(TimeoutError()))
+        self.assertFalse(server_module._is_client_disconnect(RuntimeError()))
+        self.assertFalse(server_module._is_client_disconnect(ValueError()))
+
+    def test_stalled_request_body_does_not_print_traceback(self) -> None:
+        """A client that stalls mid-body must not leave a traceback behind.
+
+        The partial body stays in the read buffer when the read times out. If the
+        handler returns without closing the connection, the server loops back and
+        reads those leftover bytes on a socket that already timed out, which
+        raises OSError("cannot read from timed out object") and dumps a traceback
+        that looks exactly like a client reset.
+        """
+        from backend.mobile_proxy import server as server_module
+
+        original = server_module._DashboardHandler.timeout
+        server_module._DashboardHandler.timeout = 1
+        buffer = io.StringIO()
+        chunks: list[bytes] = []
+        try:
+            sock = self.raw_socket()
+            sock.settimeout(10)
+            sock.sendall(
+                b"POST /api/settings HTTP/1.1\r\n"
+                b"Host: 127.0.0.1\r\n"
+                b"Content-Type: application/json\r\n"
+                b"Content-Length: 100\r\n"
+                b"\r\n"
+                b'{"partial":'
+            )
+            with redirect_stderr(buffer):
+                try:
+                    while True:
+                        chunk = sock.recv(65535)
+                        if not chunk:
+                            break
+                        chunks.append(chunk)
+                except OSError:
+                    pass
+                sock.close()
+        finally:
+            server_module._DashboardHandler.timeout = original
+
+        stderr = buffer.getvalue()
+        self.assertNotIn("Traceback", stderr)
+        self.assertNotIn("cannot read from timed out object", stderr)
+        self.assertEqual(b"".join(chunks), b"", "a stalled request must not be answered")
+
+    def test_write_timeout_does_not_report_internal_error(self) -> None:
+        """A socket write timeout must not be reported as a dashboard internal error."""
+        from backend.mobile_proxy import server as server_module
+
+        original_send = server_module._DashboardHandler._send
+        original_timeout = server_module._DashboardHandler.timeout
+
+        def raising_send(self, status, content_type, body, *, cache):
+            raise TimeoutError("simulated write timeout")
+
+        server_module._DashboardHandler._send = raising_send
+        server_module._DashboardHandler.timeout = 1
+        try:
+            with self.assertRaises(OSError):
+                self.request("/api/status")
+        finally:
+            server_module._DashboardHandler._send = original_send
+            server_module._DashboardHandler.timeout = original_timeout
+
+        messages = [
+            item["message"]
+            for item in self.service.events.snapshot(after=0, limit=500)["items"]
+        ]
+        self.assertFalse(
+            any("Lỗi máy chủ dashboard" in message for message in messages),
+            f"write timeout leaked into the dashboard event log: {messages}",
+        )
 
     def test_rotation_endpoint_and_history(self) -> None:
         status, payload = self.json_request("/api/rotate", method="POST", payload={})
