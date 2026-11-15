@@ -2,11 +2,15 @@
 
 from __future__ import annotations
 
+import io
 import json
 import re
+import socket
+import struct
 import tempfile
 import time
 import unittest
+from contextlib import redirect_stderr
 from http.client import HTTPConnection
 from pathlib import Path
 from urllib.error import HTTPError
@@ -77,6 +81,15 @@ class DashboardServerTests(unittest.TestCase):
     ) -> tuple[int, dict]:
         status, _, body = self.request(path, method=method, payload=payload)
         return status, json.loads(body)
+
+    def raw_socket(self) -> socket.socket:
+        """Open a raw TCP connection to the dashboard."""
+        return socket.create_connection(("127.0.0.1", self.port), timeout=10)
+
+    def abortive_close(self, sock: socket.socket) -> None:
+        """Close a socket with SO_LINGER=0 so the peer receives a TCP RST."""
+        sock.setsockopt(socket.SOL_SOCKET, socket.SO_LINGER, struct.pack("ii", 1, 0))
+        sock.close()
 
     def test_dashboard_index_and_assets_are_served(self) -> None:
         index_path = WEB_DIR / "index.html"
@@ -234,6 +247,62 @@ class DashboardServerTests(unittest.TestCase):
             self.assertTrue(json.loads(response.read())["ok"])
         finally:
             connection.close()
+
+    def test_client_reset_does_not_print_traceback(self) -> None:
+        """A client that resets a keep-alive connection must not produce a traceback."""
+        buffer = io.StringIO()
+        sock = self.raw_socket()
+        try:
+            sock.sendall(b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            sock.recv(65535)
+            # Let the server finish writing and go back to waiting for the next
+            # request on this keep-alive connection - that is the exact moment a
+            # real browser reset arrives.
+            time.sleep(0.3)
+            with redirect_stderr(buffer):
+                self.abortive_close(sock)
+                time.sleep(0.5)
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
+        stderr = buffer.getvalue()
+        self.assertNotIn("Traceback", stderr)
+        self.assertNotIn("ConnectionResetError", stderr)
+        self.assertNotIn("Exception occurred during processing", stderr)
+
+    def test_unexpected_error_still_prints_traceback(self) -> None:
+        """Real server-side exceptions must still surface as a traceback."""
+        buffer = io.StringIO()
+        with redirect_stderr(buffer):
+            try:
+                raise RuntimeError("synthetic server failure")
+            except RuntimeError:
+                self.server.httpd.handle_error(None, ("127.0.0.1", 1))
+
+        stderr = buffer.getvalue()
+        self.assertIn("synthetic server failure", stderr)
+        self.assertIn("Traceback", stderr)
+
+    def test_server_still_serves_requests_after_client_reset(self) -> None:
+        """Swallowing a client reset must not break later requests."""
+        sock = self.raw_socket()
+        try:
+            sock.sendall(b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            sock.recv(65535)
+            time.sleep(0.3)
+            self.abortive_close(sock)
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
+        time.sleep(0.3)
+
+        status, payload = self.json_request("/api/status")
+        self.assertEqual(status, 200)
+        self.assertIn("app", payload)
 
     def test_rotation_endpoint_and_history(self) -> None:
         status, payload = self.json_request("/api/rotate", method="POST", payload={})

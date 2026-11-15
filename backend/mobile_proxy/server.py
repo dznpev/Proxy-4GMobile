@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import sys
 import threading
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -47,6 +48,16 @@ SECURITY_HEADERS = {
 
 MAX_BODY_BYTES = 64 * 1024
 
+# Client-side disconnects are normal traffic, not server faults. socketserver's
+# default handle_error prints a full traceback for any exception, which turns a
+# browser closing a keep-alive socket into a scary-looking crash dump.
+CLIENT_DISCONNECT_ERRORS: tuple[type[BaseException], ...] = (
+    ConnectionResetError,  # WinError 10054 - peer reset the socket
+    BrokenPipeError,  # peer vanished while the server was writing
+    ConnectionAbortedError,  # WinError 10053 - local software aborted the connection
+    TimeoutError,  # socket.timeout - peer too slow, or idle socket expired
+)
+
 
 class _BadRequest(Exception):
     def __init__(self, message: str, status: int = 400) -> None:
@@ -57,6 +68,13 @@ class _BadRequest(Exception):
 class _ThreadingServer(ThreadingHTTPServer):
     allow_reuse_address = True
     daemon_threads = True
+
+    def handle_error(self, request: Any, client_address: Any) -> None:
+        """Drop client disconnects; keep the traceback for real server faults."""
+        exc = sys.exc_info()[1]
+        if isinstance(exc, CLIENT_DISCONNECT_ERRORS):
+            return
+        super().handle_error(request, client_address)
 
 
 class _DashboardHandler(BaseHTTPRequestHandler):
