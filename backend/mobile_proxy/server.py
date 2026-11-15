@@ -134,6 +134,9 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             else:
                 self._not_found()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # The socket is unusable (or already timed out): close it instead of
+            # letting handle() read the next request line from a poisoned stream.
+            self.close_connection = True
             return
         except Exception as exc:  # pragma: no cover - defensive
             self._handle_unexpected(exc)
@@ -176,6 +179,9 @@ class _DashboardHandler(BaseHTTPRequestHandler):
             else:
                 self._not_found()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # The socket is unusable (or already timed out): close it instead of
+            # letting handle() read the next request line from a poisoned stream.
+            self.close_connection = True
             return
         except _BadRequest as exc:
             self._json_error(exc.status, "invalid_request", str(exc))
@@ -202,6 +208,9 @@ class _DashboardHandler(BaseHTTPRequestHandler):
                 self._discard_request_body()
                 self._not_found()
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            # The socket is unusable (or already timed out): close it instead of
+            # letting handle() read the next request line from a poisoned stream.
+            self.close_connection = True
             return
         except Exception as exc:  # pragma: no cover - defensive
             self._handle_unexpected(exc)
@@ -332,6 +341,7 @@ class _DashboardHandler(BaseHTTPRequestHandler):
         try:
             self._json_error(500, "internal_error", "Lỗi nội bộ của dashboard.")
         except (BrokenPipeError, ConnectionResetError, ConnectionAbortedError, TimeoutError):
+            self.close_connection = True
             pass
 
     def log_message(self, format: str, *args: Any) -> None:  # noqa: A002
