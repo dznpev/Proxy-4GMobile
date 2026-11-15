@@ -304,6 +304,66 @@ class DashboardServerTests(unittest.TestCase):
         self.assertEqual(status, 200)
         self.assertIn("app", payload)
 
+    def test_dashboard_handler_has_idle_timeout(self) -> None:
+        """Idle keep-alive connections must be reaped, not held open forever."""
+        from backend.mobile_proxy import server as server_module
+
+        self.assertEqual(server_module._DashboardHandler.timeout, 60)
+
+    def test_idle_keepalive_connection_is_reaped(self) -> None:
+        """A connection that sends nothing must be closed by the server."""
+        from backend.mobile_proxy import server as server_module
+
+        original = server_module._DashboardHandler.timeout
+        server_module._DashboardHandler.timeout = 1
+        buffer = io.StringIO()
+        try:
+            sock = self.raw_socket()
+            with redirect_stderr(buffer):
+                sock.settimeout(10)
+                data = sock.recv(65535)
+                sock.close()
+        finally:
+            server_module._DashboardHandler.timeout = original
+
+        self.assertEqual(data, b"")
+        self.assertNotIn("Traceback", buffer.getvalue())
+
+    def test_keepalive_still_works_after_one_connection_is_reset(self) -> None:
+        """One aborted connection must not affect other connections."""
+        sock = self.raw_socket()
+        try:
+            sock.sendall(b"GET /api/status HTTP/1.1\r\nHost: 127.0.0.1\r\n\r\n")
+            sock.recv(65535)
+            time.sleep(0.3)
+            self.abortive_close(sock)
+        finally:
+            try:
+                sock.close()
+            except OSError:
+                pass
+        time.sleep(0.3)
+
+        connection = HTTPConnection("127.0.0.1", self.port, timeout=10)
+        try:
+            connection.request("GET", "/api/health")
+            response = connection.getresponse()
+            self.assertEqual(response.status, 200)
+            self.assertTrue(json.loads(response.read())["ok"])
+        finally:
+            connection.close()
+
+    def test_client_disconnect_classification(self) -> None:
+        """Only peer-gone errors are classified as disconnects; real faults are not."""
+        from backend.mobile_proxy import server as server_module
+
+        self.assertTrue(server_module._is_client_disconnect(ConnectionResetError()))
+        self.assertTrue(server_module._is_client_disconnect(BrokenPipeError()))
+        self.assertTrue(server_module._is_client_disconnect(ConnectionAbortedError()))
+        self.assertTrue(server_module._is_client_disconnect(TimeoutError()))
+        self.assertFalse(server_module._is_client_disconnect(RuntimeError()))
+        self.assertFalse(server_module._is_client_disconnect(ValueError()))
+
     def test_rotation_endpoint_and_history(self) -> None:
         status, payload = self.json_request("/api/rotate", method="POST", payload={})
         self.assertEqual(status, 202)
